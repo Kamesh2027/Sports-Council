@@ -1,0 +1,268 @@
+/* =========================
+   GLOBAL
+========================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #10141a;
+    color: #e5e7eb;
+}
+
+
+/* =========================
+   LOGIN
+========================= */
+
+/* .login-container {
+    min-height: 100vh;
+    width: 100%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 20px;
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(37, 99, 235, 0.25),
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            rgba(14, 165, 233, 0.18),
+            transparent 35%
+        ),
+        #0b1220;
+}
+
+
+.login-box {
+    width: 100%;
+    max-width: 430px;
+
+    background: #ffffff;
+
+    padding: 40px;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.35);
+
+    animation: loginAppear 0.5s ease;
+}
+
+
+.login-box h1 {
+    text-align: center;
+
+    font-size: 28px;
+    font-weight: 700;
+
+    color: #0f172a;
+
+    margin-bottom: 8px;
+}
+
+
+.login-box h2 {
+    text-align: center;
+
+    font-size: 18px;
+    font-weight: 500;
+
+    color: #64748b;
+
+    margin-bottom: 30px;
+}
+
+
+.login-box form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+
+.login-box form > div {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+
+.login-box label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+}
+
+
+.login-box input {
+    width: 100%;
+
+    padding: 13px 14px;
+
+    font-size: 14px;
+
+    color: #1e293b;
+
+    background: #f8fafc;
+
+    border: 1px solid #cbd5e1;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    transition: all 0.2s ease;
+}
+
+
+.login-box input::placeholder {
+    color: #94a3b8;
+}
+
+
+.login-box input:focus {
+    background: #ffffff;
+
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+
+.login-box button {
+    width: 100%;
+
+    padding: 13px;
+
+    margin-top: 5px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #2563eb;
+
+    color: #ffffff;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+
+.login-box button:hover {
+    background: #1d4ed8;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 8px 18px rgba(37, 99, 235, 0.25);
+}
+
+
+.login-box button:disabled {
+    background: #94a3b8;
+
+    cursor: not-allowed;
+
+    transform: none;
+
+    box-shadow: none;
+}   
+
+
+.error {
+    padding: 11px 13px;
+
+    margin-bottom: 20px;
+
+    border-radius: 7px;
+
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+
+    color: #dc2626;
+
+    font-size: 13px;
+
+    text-align: center;
+}
+
+
+@keyframes loginAppear {
+
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+@media (max-width: 500px) {
+
+    .login-container {
+        padding: 15px;
+    }
+
+    .login-box {
+        padding: 30px 22px;
+        border-radius: 14px;
+    }
+
+    .login-box h1 {
+        font-size: 24px;
+    }
+} */ 
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: flex; justify-content: center; align-items: center;
+}
+
+.modal-box {
+  background: #1a1f26;
+  padding: 20px;
+  border-radius: 8px;
+  min-width: 300px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  float: right;
+  cursor: pointer;
+}

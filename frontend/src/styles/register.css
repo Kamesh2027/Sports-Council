@@ -1,0 +1,290 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+
+:root {
+  --surface-lowest: #0a0e14;
+  --surface: #10141a;
+  --surface-container: #1c2026;
+  --on-surface: #dfe2eb;
+  --on-surface-variant: #bbc9cf;
+  --outline-variant: #3c494e;
+  --primary-container: #00d2ff;
+  --on-primary-container: #0a4654;
+  --field-bg: #05080a;
+}
+
+* { box-sizing: border-box; }
+
+.register-page {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  overflow: hidden;
+  background: var(--surface-lowest);
+  color: var(--on-surface);
+  font-family: "Inter", sans-serif;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+}
+
+.glass-panel {
+  background-color: rgba(26, 31, 55, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Left branding panel */
+/* Left branding panel */
+.register-promo {
+  display: none;
+  position: relative;
+  width: 1900px;
+  background-color: var(--surface-container);
+  background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAJ_C1HyX-A9-7h2sBGTXgUuuRQoVAUXwkQQK_OHKLvMODNbmyKrN9mSpSMI7TKxhkjIauPOlNxNBQifxQOA9Xz-V8aum78HmCxgt8tcyhrEeVSJJWZJ6YbuC7pSHEGYbPSwOe79-UpduU3vJcR6KJu4YmbK9E2ZkCvz7o88cn8MEy_HoST-cbifWCo1EEBsHMLVtVK3CRZ-HK2s0sJh_Gkhl-T8bqWqKNQY6WHhQ3gJNgaer7Jvdatng");
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.register-promo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--surface-lowest);
+  opacity: 0.6;
+  z-index: 1;
+}
+
+.register-promo-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(to top, var(--surface-lowest) 0%, transparent 50%),
+    linear-gradient(to right, transparent 60%, var(--surface-lowest) 100%);
+  opacity: 0.9;
+}
+
+.register-promo-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 48px;
+}
+
+.register-promo-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    var(--surface-lowest) 0%,
+    transparent 50%
+  );
+}
+
+.register-promo-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 48px;
+}
+
+.register-promo-panel {
+  padding: 32px;
+  border-radius: 12px;
+  max-width: 420px;
+}
+
+.register-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.register-promo-panel h2 {
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+.register-promo-panel p {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--on-surface-variant);
+  margin: 0;
+}
+
+/* Right form panel */
+.register-form-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.register-box {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.register-logo-mobile {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  margin: 0 auto 16px;
+  display: block;
+}
+
+.register-header h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.register-header p {
+  font-size: 16px;
+  color: var(--on-surface-variant);
+  margin: 0;
+}
+
+.register-error {
+  background: rgba(147, 0, 10, 0.2);
+  border: 1px solid #93000a;
+  color: #ffb4ab;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  margin-bottom: 8px;
+}
+
+.field-input {
+  position: relative;
+}
+
+.field-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--outline-variant);
+  font-size: 20px;
+}
+
+.field-input input {
+  width: 100%;
+  background: var(--field-bg);
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  padding: 12px 16px 12px 40px;
+  color: #fff;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.field-input input:focus {
+  outline: none;
+  border-color: #00d2ff;
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
+}
+
+.register-submit {
+  width: 100%;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-size: 20px;
+  font-weight: 600;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+  transition: box-shadow 0.3s ease;
+}
+
+.register-submit:hover:not(:disabled) {
+  box-shadow: 0 0 25px rgba(0, 210, 255, 0.6);
+}
+
+.register-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.register-links {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.register-links p {
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  margin: 0;
+}
+
+.register-links button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #a5e7ff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.register-links button:hover {
+  color: #b6ebff;
+}
+
+@media (min-width: 768px) {
+  .register-promo {
+    display: flex;
+  }
+  .register-logo-mobile {
+    display: none;
+  }
+}
