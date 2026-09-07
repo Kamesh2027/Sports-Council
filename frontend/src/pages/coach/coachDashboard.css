@@ -1,0 +1,752 @@
+/* =====================================================
+   BIT SPORTS COACH DASHBOARD
+===================================================== */
+
+.coach-dashboard {
+    width: 100%;
+    min-height: 100vh;
+
+    background: #10141a;
+    color: #e5e7eb;
+
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+
+/* =====================================================
+   CONTENT
+===================================================== */
+
+.coach-content {
+    width: 100%;
+
+    padding: 22px 26px 30px;
+}
+
+
+/* =====================================================
+   PAGE HEADING
+===================================================== */
+
+.coach-page-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    margin-bottom: 20px;
+}
+
+.coach-page-heading h1 {
+    margin: 0;
+
+    font-size: 25px;
+
+    color: #e7edf2;
+}
+
+.coach-page-heading p {
+    margin-top: 5px;
+
+    font-size: 12px;
+
+    color: #9eabb7;
+}
+
+
+/* =====================================================
+   STAT GRID
+===================================================== */
+
+.coach-stats-grid {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin-bottom: 22px;
+}
+
+
+/* =====================================================
+   STAT CARD
+===================================================== */
+
+.coach-stat-card {
+    min-width: 0;
+    min-height: 122px;
+
+    padding: 16px;
+
+    border: 1px solid #2b323a;
+
+    border-radius: 6px;
+
+    background: #1b2027;
+
+    transition: 0.2s;
+}
+
+.coach-stat-card:hover {
+    border-color: #3a4652;
+
+    transform: translateY(-2px);
+}
+
+
+/* =====================================================
+   STAT HEADER
+===================================================== */
+
+.coach-stat-header {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+}
+
+.coach-stat-header span {
+    font-size: 9px;
+
+    font-weight: 800;
+
+    color: #9da9b4;
+
+    letter-spacing: 0.3px;
+}
+
+
+/* =====================================================
+   STAT ICON
+===================================================== */
+
+.coach-stat-icon {
+    width: 28px;
+    height: 28px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #172d35;
+
+    color: #05c7ee;
+
+    font-size: 14px;
+}
+
+
+/* =====================================================
+   STAT NUMBER
+===================================================== */
+
+.coach-stat-card h2 {
+    margin-top: 8px;
+
+    font-size: 37px;
+
+    line-height: 40px;
+
+    color: #e7edf2;
+}
+
+.coach-stat-card p {
+    margin-top: 5px;
+
+    font-size: 9px;
+
+    color: #05bfe5;
+}
+
+
+/* =====================================================
+   HIGHLIGHT CARD
+===================================================== */
+
+.highlight-coach-card {
+    border-color: #05c7ee;
+
+    box-shadow:
+        0 0 18px rgba(5, 199, 238, 0.08);
+}
+
+.highlight-coach-card h2 {
+    color: #05c7ee;
+}
+
+.highlight-coach-card .coach-stat-icon {
+    background: #05c7ee;
+
+    color: #07131a;
+}
+
+
+/* =====================================================
+   DASHBOARD GRID
+===================================================== */
+
+.coach-dashboard-grid {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.2fr)
+        minmax(0, 1fr);
+
+    gap: 12px;
+}
+
+
+/* =====================================================
+   PANEL
+===================================================== */
+
+.coach-panel {
+    min-width: 0;
+
+    border: 1px solid #2b323a;
+
+    border-radius: 6px;
+
+    background: #1b2027;
+
+    overflow: hidden;
+}
+
+
+/* =====================================================
+   PANEL HEADER
+===================================================== */
+
+.coach-panel-header {
+    min-height: 45px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 15px;
+
+    border-bottom: 1px solid #2b323a;
+}
+
+
+.coach-panel-title {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    color: #05c7ee;
+}
+
+
+.coach-panel-title span {
+    font-size: 14px;
+}
+
+
+.coach-panel-title h3 {
+    margin: 0;
+
+    font-size: 12px;
+
+    color: #cbd3da;
+}
+
+
+/* =====================================================
+   TEAM
+===================================================== */
+
+.coach-team-content {
+    padding: 18px;
+}
+
+.coach-team-name {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    margin-bottom: 18px;
+}
+
+.coach-team-name h2 {
+    margin: 0;
+
+    font-size: 18px;
+
+    color: #e5e7eb;
+}
+
+
+.coach-team-status {
+    padding: 4px 8px;
+
+    border-radius: 10px;
+
+    background: #0c3329;
+
+    color: #35d49b;
+
+    font-size: 7px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+
+.coach-team-details {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 10px;
+}
+
+
+.coach-team-details div {
+    padding: 12px;
+
+    border: 1px solid #303740;
+
+    border-radius: 5px;
+
+    background: #171c22;
+}
+
+
+.coach-team-details span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    font-size: 8px;
+
+    color: #76838e;
+
+    font-weight: 800;
+}
+
+
+.coach-team-details strong {
+    font-size: 12px;
+
+    color: #cbd3da;
+}
+
+
+/* =====================================================
+   MATCHES
+===================================================== */
+
+.coach-match-list {
+    padding: 9px;
+}
+
+
+.coach-match-item {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 10px;
+
+    margin-bottom: 7px;
+
+    border: 1px solid #303740;
+
+    border-radius: 5px;
+
+    background: #1f252c;
+}
+
+
+.coach-match-item:last-child {
+    margin-bottom: 0;
+}
+
+
+.match-date {
+    min-width: 60px;
+
+    padding: 7px;
+
+    border-radius: 4px;
+
+    background: #172d35;
+
+    color: #05c7ee;
+
+    font-size: 8px;
+
+    font-weight: 800;
+
+    text-align: center;
+}
+
+
+.match-info {
+    min-width: 0;
+
+    flex: 1;
+}
+
+
+.match-info h4 {
+    margin: 0 0 4px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    font-size: 10px;
+
+    color: #cbd3d9;
+}
+
+
+.match-info p {
+    margin: 0;
+
+    font-size: 8px;
+
+    color: #7f8b96;
+}
+
+
+.coach-match-item > strong {
+    font-size: 8px;
+
+    color: #05c7ee;
+}
+
+
+/* =====================================================
+   ACTIVITIES
+===================================================== */
+
+.coach-activity-list {
+    padding: 5px 15px;
+}
+
+
+.coach-activity-item {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 10px;
+
+    padding: 12px 0;
+
+    border-bottom: 1px solid #282f36;
+}
+
+
+.coach-activity-item:last-child {
+    border-bottom: none;
+}
+
+
+.activity-dot {
+    width: 7px;
+    height: 7px;
+
+    flex-shrink: 0;
+
+    margin-top: 4px;
+
+    border-radius: 50%;
+
+    background: #05c7ee;
+
+    box-shadow:
+        0 0 8px rgba(5, 199, 238, 0.5);
+}
+
+
+.coach-activity-item h4 {
+    margin: 0 0 4px;
+
+    font-size: 10px;
+
+    color: #cbd3da;
+}
+
+
+.coach-activity-item p {
+    margin: 0;
+
+    font-size: 8px;
+
+    color: #76838e;
+}
+
+
+/* =====================================================
+   EQUIPMENT REQUESTS
+===================================================== */
+
+.coach-request-list {
+    padding: 7px 15px;
+}
+
+
+.coach-request-item {
+    min-height: 50px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    border-bottom: 1px solid #282f36;
+}
+
+
+.coach-request-item:last-child {
+    border-bottom: none;
+}
+
+
+.coach-request-item h4 {
+    margin: 0 0 4px;
+
+    font-size: 10px;
+
+    color: #cbd3da;
+}
+
+
+.coach-request-item p {
+    margin: 0;
+
+    font-size: 8px;
+
+    color: #76838e;
+}
+
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+.coach-status {
+    padding: 4px 8px;
+
+    border-radius: 10px;
+
+    font-size: 7px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+
+.coach-status.pending {
+    background: #382b0b;
+
+    color: #e8a91b;
+}
+
+
+.coach-status.approved {
+    background: #0c3329;
+
+    color: #35d49b;
+}
+
+
+.coach-status.rejected {
+    background: #3b1f21;
+
+    color: #ef8585;
+}
+
+
+/* =====================================================
+   EMPTY
+===================================================== */
+
+.coach-empty {
+    min-height: 130px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    text-align: center;
+}
+
+
+.coach-empty h3 {
+    margin: 0 0 7px;
+
+    font-size: 12px;
+
+    color: #aab4bd;
+}
+
+
+.coach-empty p {
+    max-width: 350px;
+
+    margin: 0;
+
+    font-size: 9px;
+
+    line-height: 14px;
+
+    color: #697681;
+}
+
+
+/* =====================================================
+   LOADING
+===================================================== */
+
+.coach-dashboard-loading {
+    width: 100%;
+    min-height: 100vh;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: #10141a;
+
+    color: #05c7ee;
+
+    font-size: 13px;
+}
+
+
+/* =====================================================
+   ERROR
+===================================================== */
+
+.coach-dashboard-error {
+    min-height: 300px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 30px;
+
+    background: #10141a;
+
+    text-align: center;
+}
+
+
+.coach-dashboard-error h2 {
+    margin-bottom: 8px;
+
+    color: #ef8585;
+
+    font-size: 18px;
+}
+
+
+.coach-dashboard-error p {
+    margin-bottom: 15px;
+
+    color: #8d99a5;
+
+    font-size: 11px;
+}
+
+
+.coach-dashboard-error button {
+    padding: 8px 15px;
+
+    border: none;
+
+    border-radius: 5px;
+
+    background: #05c7ee;
+
+    color: #07131a;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 1000px) {
+
+    .coach-stats-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .coach-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+@media (max-width: 800px) {
+
+    .coach-content {
+        padding: 18px 14px;
+    }
+}
+
+
+@media (max-width: 550px) {
+
+    .coach-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .coach-content {
+        padding: 15px 10px;
+    }
+
+    .coach-page-heading h1 {
+        font-size: 20px;
+    }
+
+    .coach-team-details {
+        grid-template-columns: 1fr;
+    }
+}

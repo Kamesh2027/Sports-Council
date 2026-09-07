@@ -2,16 +2,10 @@ const mongoose = require("mongoose");
 
 const coachSchema = new mongoose.Schema(
     {
-        coachId: {
-            type: String,
-            unique: true,
-            required: true
-        },
-
         userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true
+            type: String,
+            required: true,
+            unique: true
         },
 
         name: {
@@ -22,23 +16,34 @@ const coachSchema = new mongoose.Schema(
         email: {
             type: String,
             required: true,
-            unique: true
+            unique: true,
+            lowercase: true
+        },
+
+        phone: {
+            type: String,
+            default: ""
+        },
+
+        gender: {
+            type: String,
+            enum: ["Male", "Female", "Other", ""],
+            default: "Male"
         },
 
         sport: {
             type: String,
-            required: true
+            default: "General Athletics"
+        },
+
+        teamName: {
+            type: String,
+            default: ""
         },
 
         teamId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Team",
-            default: null
-        },
-
-        adminId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
             default: null
         }
     },

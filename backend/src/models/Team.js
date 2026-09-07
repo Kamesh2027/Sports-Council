@@ -21,14 +21,31 @@ const teamSchema = new mongoose.Schema(
         coachId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Coach",
-            unique: true,
-            required: true
+            default: null
         },
 
         students: [
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Student"
+            }
+        ],
+
+        equipments: [
+            {
+                equipmentId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Equipment"
+                },
+                name: {
+                    type: String,
+                    default: ""
+                },
+                quantity: {
+                    type: Number,
+                    default: 0,
+                    min: 0
+                }
             }
         ]
     },

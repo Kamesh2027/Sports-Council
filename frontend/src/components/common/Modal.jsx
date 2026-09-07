@@ -1,46 +1,113 @@
-import { useState } from "react";
-import axios from "axios";
+import React, { useEffect } from "react";
+import { X } from "lucide-react";
 
-const CoachForm = ({ onSuccess }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    sport: "",
-    coachId: ""
-  });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post("/api/coaches", formData);
-      alert("Coach added successfully!");
-      onSuccess(); // close modal
-    } catch (err) {
-      alert(err.response?.data?.message || "Error adding coach");
-    }
-  };
+const Modal = ({ title, children, onClose, maxWidth = "540px" }) => {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>Name</label>
-      <input name="name" value={formData.name} onChange={handleChange} required />
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.75)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+        padding: "16px"
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: maxWidth,
+          backgroundColor: "#161b22",
+          border: "1px solid #30363d",
+          borderRadius: "12px",
+          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6)",
+          overflow: "hidden",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          animation: "modalFadeIn 0.2s ease-out"
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 20px",
+            borderBottom: "1px solid #21262d",
+            backgroundColor: "#0d1117"
+          }}
+        >
+          <h3
+            style={{
+              margin: 0,
+              fontSize: "16px",
+              fontWeight: "600",
+              color: "#58a6ff",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            {title || "Dialog"}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#8b949e",
+              cursor: "pointer",
+              padding: "4px",
+              borderRadius: "6px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "color 0.15s, background 0.15s"
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.color = "#f0f6fc";
+              e.currentTarget.style.backgroundColor = "#21262d";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.color = "#8b949e";
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+            aria-label="Close dialog"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-      <label>Email</label>
-      <input name="email" type="email" value={formData.email} onChange={handleChange} required />
-
-      <label>Sport</label>
-      <input name="sport" value={formData.sport} onChange={handleChange} required />
-
-      <label>Coach ID</label>
-      <input name="coachId" value={formData.coachId} onChange={handleChange} required />
-
-      <button type="submit">Submit</button>
-    </form>
+        {/* Body */}
+        <div
+          style={{
+            padding: "20px",
+            overflowY: "auto"
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default CoachForm;
+export default Modal;

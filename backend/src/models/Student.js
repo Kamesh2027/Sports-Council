@@ -23,7 +23,8 @@ const studentSchema = new mongoose.Schema(
         email: {
             type: String,
             required: true,
-            unique: true
+            unique: true,
+            lowercase: true
         },
 
         registerNumber: {
@@ -32,26 +33,42 @@ const studentSchema = new mongoose.Schema(
             unique: true
         },
 
+        phone: {
+            type: String,
+            default: ""
+        },
+
         department: {
             type: String,
-            required: true
+            default: "General"
         },
 
         year: {
             type: Number,
-            required: true
+            default: 1
         },
 
         coachId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Coach",
-            required: true
+            default: null
+        },
+
+        coachUserId: {
+            type: String,
+            default: ""
         },
 
         teamId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Team",
             default: null
+        },
+
+        approvalStatus: {
+            type: String,
+            enum: ["pending", "approved", "rejected"],
+            default: "pending"
         }
     },
     {

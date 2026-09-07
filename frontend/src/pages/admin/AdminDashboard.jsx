@@ -28,33 +28,26 @@ import {
     Map,
     CheckCircle,
     AlertCircle,
-    Wrench
+    Wrench,
+    ShieldCheck
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
-
 import adminService from "../../services/adminService";
+import Modal from "../../components/common/Modal";
+import CoachForm from "../../components/common/CoachForm";
 
 import "../../styles/admin.css";
-
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
+    const { user, logout } = useAuth();
 
-    const {
-        user,
-        logout
-    } = useAuth();
-
-
-    const [dashboard, setDashboard] =
-        useState(null);
-
-    const [loading, setLoading] =
-        useState(true);
-
-    const [error, setError] =
-        useState("");
+    const [dashboard, setDashboard] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [showAddCoachModal, setShowAddCoachModal] = useState(false);
+    const [notificationMsg, setNotificationMsg] = useState("");
 
 
     // =========================
@@ -171,28 +164,62 @@ const AdminDashboard = () => {
 
                         <div>
 
-                            <h1 className="page-title">
-                                Admin Dashboard
-                                <button className="export-btn">
-        
-                                    <Download size={15} />
-        
-                                    EXPORT
-        
-                                </button>
-                            </h1>
+                            <h1 className="page-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                                <span>Admin Dashboard</span>
+                                
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                    <button
+                                        className="primary-btn"
+                                        onClick={() => setShowAddCoachModal(true)}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "6px",
+                                            backgroundColor: "#05c7ee",
+                                            color: "#07131a",
+                                            fontWeight: "700",
+                                            fontSize: "12px",
+                                            padding: "8px 14px",
+                                            borderRadius: "6px",
+                                            border: "none",
+                                            cursor: "pointer"
+                                        }}
+                                    >
+                                        <Plus size={16} />
+                                        ADD COACH
+                                    </button>
 
-                            {/* <p>
-                                System status and key
-                                metrics for current
-                                operations.
-                            </p> */}
+                                    <button className="export-btn">
+                                        <Download size={15} />
+                                        EXPORT
+                                    </button>
+                                </div>
+                            </h1>
 
                         </div>
 
-
-
                     </div>
+
+                    {/* NOTIFICATION MESSAGE */}
+                    {notificationMsg && (
+                        <div
+                            style={{
+                                margin: "14px 0",
+                                padding: "12px 16px",
+                                backgroundColor: "rgba(34, 197, 94, 0.15)",
+                                border: "1px solid rgba(34, 197, 94, 0.3)",
+                                borderRadius: "8px",
+                                color: "#4ade80",
+                                fontSize: "13px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px"
+                            }}
+                        >
+                            <ShieldCheck size={18} />
+                            <span>{notificationMsg}</span>
+                        </div>
+                    )}
 
 
                     {/* ================= STATS ================= */}
@@ -200,7 +227,7 @@ const AdminDashboard = () => {
                     <div className="stats-grid">
 
 
-                        <div className="stat-card">
+                        <div className="stat-card" style={{ position: "relative" }}>
 
                             <div className="stat-header">
 
@@ -216,9 +243,26 @@ const AdminDashboard = () => {
                                 {stats.coaches}
                             </h2>
 
-                            <p>
-                                Registered coaches
-                            </p>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
+                                <p style={{ margin: 0 }}>
+                                    Registered coaches
+                                </p>
+                                <button
+                                    onClick={() => setShowAddCoachModal(true)}
+                                    style={{
+                                        background: "transparent",
+                                        border: "1px solid rgba(5, 199, 238, 0.4)",
+                                        color: "#05c7ee",
+                                        borderRadius: "4px",
+                                        padding: "2px 8px",
+                                        fontSize: "10px",
+                                        fontWeight: "700",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    + Add
+                                </button>
+                            </div>
 
                         </div>
 
@@ -599,6 +643,25 @@ const AdminDashboard = () => {
                 </section>
 
             {/* </main> */}
+
+            {/* ADD COACH MODAL */}
+            {showAddCoachModal && (
+                <Modal
+                    title="Register New Sports Coach"
+                    onClose={() => setShowAddCoachModal(false)}
+                    maxWidth="560px"
+                >
+                    <CoachForm
+                        onSuccess={(newCoach) => {
+                            setShowAddCoachModal(false);
+                            setNotificationMsg(`Coach ${newCoach?.name || ""} registered successfully!`);
+                            setTimeout(() => setNotificationMsg(""), 4000);
+                            loadDashboard();
+                        }}
+                        onCancel={() => setShowAddCoachModal(false)}
+                    />
+                </Modal>
+            )}
 
         </div>
     );
