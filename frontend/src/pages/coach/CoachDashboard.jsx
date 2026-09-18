@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
+import { RotateCcw, Package, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 
 import "./CoachDashboard.css";
 
 const CoachDashboard = () => {
-
+    const navigate = useNavigate();
     const { user } = useAuth();
 
     const [dashboard, setDashboard] = useState(null);
@@ -89,7 +91,7 @@ const CoachDashboard = () => {
 
                 {/* PAGE HEADER */}
 
-                <div className="coach-page-heading">
+                <div className="coach-page-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
 
                     <div>
 
@@ -98,10 +100,31 @@ const CoachDashboard = () => {
                         </h1>
 
                         <p>
-                            Manage your team, players, equipment and
-                            upcoming matches.
+                            Manage your team, players, equipment, athlete loans and returns.
                         </p>
 
+                    </div>
+
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        <button
+                            onClick={() => navigate("/coach/equipment")}
+                            style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                backgroundColor: "#05c7ee",
+                                color: "#07131a",
+                                fontWeight: "700",
+                                padding: "10px 18px",
+                                borderRadius: "6px",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: "13px"
+                            }}
+                        >
+                            <RotateCcw size={16} />
+                            RETURN EQUIPMENT
+                        </button>
                     </div>
 
                 </div>
@@ -116,7 +139,7 @@ const CoachDashboard = () => {
 
                     {/* TEAM */}
 
-                    <div className="coach-stat-card">
+                    <div className="coach-stat-card" onClick={() => navigate("/coach/team")} style={{ cursor: "pointer" }}>
 
                         <div className="coach-stat-header">
 
@@ -135,7 +158,7 @@ const CoachDashboard = () => {
                         </h2>
 
                         <p>
-                            Assigned team
+                            Assigned squad
                         </p>
 
                     </div>
@@ -143,7 +166,7 @@ const CoachDashboard = () => {
 
                     {/* STUDENTS */}
 
-                    <div className="coach-stat-card">
+                    <div className="coach-stat-card" onClick={() => navigate("/coach/students")} style={{ cursor: "pointer" }}>
 
                         <div className="coach-stat-header">
 
@@ -170,7 +193,7 @@ const CoachDashboard = () => {
 
                     {/* EQUIPMENT */}
 
-                    <div className="coach-stat-card">
+                    <div className="coach-stat-card" onClick={() => navigate("/coach/equipment")} style={{ cursor: "pointer" }}>
 
                         <div className="coach-stat-header">
 
@@ -189,34 +212,35 @@ const CoachDashboard = () => {
                         </h2>
 
                         <p>
-                            Assigned equipment
+                            Available inventory items
                         </p>
 
                     </div>
 
 
-                    {/* REQUESTS */}
+                    {/* ACTIVE LOANS & RETURNS */}
 
-                    <div className="coach-stat-card highlight-coach-card">
+                    <div className="coach-stat-card highlight-coach-card" onClick={() => navigate("/coach/equipment")} style={{ cursor: "pointer" }}>
 
                         <div className="coach-stat-header">
 
                             <span>
-                                REQUESTS
+                                ACTIVE LOANS & RETURNS
                             </span>
 
-                            <div className="coach-stat-icon">
-                                📋
+                            <div className="coach-stat-icon" style={{ backgroundColor: "rgba(5, 199, 238, 0.2)", color: "#05c7ee" }}>
+                                🔄
                             </div>
 
                         </div>
 
                         <h2>
-                            {dashboard?.stats?.pendingRequests || 0}
+                            {dashboard?.stats?.activeLoans || 0}
                         </h2>
 
-                        <p>
-                            Pending equipment requests
+                        <p style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>Active loans</span>
+                            <span style={{ color: "#38bdf8", fontWeight: "700" }}>{dashboard?.stats?.returnedLoans || 0} returned</span>
                         </p>
 
                     </div>
@@ -486,12 +510,12 @@ const CoachDashboard = () => {
 
 
                     {/* =========================
-                        EQUIPMENT REQUESTS
+                        EQUIPMENT REQUESTS & ACTIVE LOANS
                     ========================= */}
 
                     <div className="coach-panel">
 
-                        <div className="coach-panel-header">
+                        <div className="coach-panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 
                             <div className="coach-panel-title">
 
@@ -500,10 +524,27 @@ const CoachDashboard = () => {
                                 </span>
 
                                 <h3>
-                                    Equipment Requests
+                                    Equipment & Loans
                                 </h3>
 
                             </div>
+
+                            <button
+                                onClick={() => navigate("/coach/equipment")}
+                                style={{
+                                    backgroundColor: "transparent",
+                                    border: "none",
+                                    color: "#05c7ee",
+                                    fontSize: "12px",
+                                    fontWeight: "700",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px"
+                                }}
+                            >
+                                Manage / Return Gear <ArrowRight size={14} />
+                            </button>
 
                         </div>
 
@@ -515,53 +556,89 @@ const CoachDashboard = () => {
                                 <div className="coach-empty">
 
                                     <h3>
-                                        No equipment requests
+                                        No equipment records
                                     </h3>
 
                                     <p>
-                                        Your equipment requests will appear here.
+                                        Your equipment requests and athlete loans will appear here.
                                     </p>
 
                                 </div>
 
                             ) : (
 
-                                dashboard?.requests?.map((request) => (
+                                dashboard?.requests?.map((request) => {
+                                    const isApproved = request.status === "approved";
+                                    const isReturned = request.status === "returned";
+                                    const isDamaged = request.returnCondition === "damaged" || (request.damagedQuantityReturned && request.damagedQuantityReturned > 0);
 
-                                    <div
-                                        className="coach-request-item"
-                                        key={request._id}
-                                    >
+                                    return (
+                                        <div
+                                            className="coach-request-item"
+                                            key={request._id}
+                                            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px" }}
+                                        >
 
-                                        <div>
+                                            <div>
 
-                                            <h4>
-                                                {request.equipment?.name ||
-                                                    request.equipmentName ||
-                                                    "Equipment"}
-                                            </h4>
+                                                <h4 style={{ margin: "0 0 4px 0", fontSize: "14px", color: "#f0f6fc" }}>
+                                                    {request.equipment?.name ||
+                                                        request.equipmentName ||
+                                                        "Equipment"}
+                                                </h4>
 
-                                            <p>
-                                                Quantity:{" "}
-                                                {request.quantity || 0}
-                                            </p>
+                                                <p style={{ margin: 0, fontSize: "12px", color: "#8da3b5" }}>
+                                                    Qty: <strong style={{ color: "#f0f6fc" }}>{request.quantity || 1}</strong>
+                                                    {request.studentId?.name && ` • Holder: ${request.studentId.name}`}
+                                                </p>
+
+                                                {isReturned && (
+                                                    <span style={{ fontSize: "11px", color: isDamaged ? "#f87171" : "#4ade80", marginTop: "4px", display: "block" }}>
+                                                        {isDamaged
+                                                            ? `⚠️ Returned damaged (${request.damagedQuantityReturned || request.quantity} units)`
+                                                            : "✓ Returned in good condition"}
+                                                    </span>
+                                                )}
+
+                                            </div>
+
+                                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+                                                <span
+                                                    className={`coach-status ${
+                                                        request.status
+                                                            ?.toLowerCase()
+                                                            ?.replace(" ", "-")
+                                                    }`}
+                                                >
+                                                    {request.status}
+                                                </span>
+
+                                                {isApproved && (
+                                                    <button
+                                                        onClick={() => navigate("/coach/equipment")}
+                                                        style={{
+                                                            padding: "4px 10px",
+                                                            backgroundColor: "#05c7ee",
+                                                            color: "#07131a",
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            fontSize: "11px",
+                                                            fontWeight: "700",
+                                                            cursor: "pointer",
+                                                            display: "inline-flex",
+                                                            alignItems: "center",
+                                                            gap: "4px"
+                                                        }}
+                                                    >
+                                                        <RotateCcw size={12} />
+                                                        Return Gear
+                                                    </button>
+                                                )}
+                                            </div>
 
                                         </div>
-
-
-                                        <span
-                                            className={`coach-status ${
-                                                request.status
-                                                    ?.toLowerCase()
-                                                    ?.replace(" ", "-")
-                                            }`}
-                                        >
-                                            {request.status}
-                                        </span>
-
-                                    </div>
-
-                                ))
+                                    );
+                                })
 
                             )}
 

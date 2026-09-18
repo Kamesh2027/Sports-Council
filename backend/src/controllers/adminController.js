@@ -7,6 +7,7 @@ const Tournament = require("../models/Tournament");
 const Venue = require("../models/Venue");
 const Activity = require("../models/Activity");
 const User = require("../models/User");
+const Schedule = require("../models/Schedule");
 const bcrypt = require("bcryptjs");
 
 // =====================================================
@@ -726,9 +727,10 @@ const updateStudentApproval = async (req, res) => {
 const getAllRequests = async (req, res) => {
     try {
         const requests = await EquipmentRequest.find()
-            .populate("equipmentId", "name equipmentId category sport totalQuantity availableQuantity status")
+            .populate("equipmentId", "name equipmentId category sport totalQuantity availableQuantity damagedQuantity status")
             .populate("studentId", "name studentId email registerNumber department year phone gender teamId")
             .populate("coachId", "name userId email phone sport teamName")
+            .populate("returnedByCoach", "name userId email phone sport teamName")
             .sort({ createdAt: -1 });
 
         return res.status(200).json({
@@ -752,7 +754,7 @@ const getAllRequests = async (req, res) => {
 const updateRequestStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, remarks } = req.body;
+        const { status, remarks, condition, damagedCount } = req.body;
 
         const validStatuses = ["pending", "approved", "rejected", "returned"];
         if (!status || !validStatuses.includes(status)) {
@@ -770,7 +772,8 @@ const updateRequestStatus = async (req, res) => {
         })
             .populate("equipmentId")
             .populate("studentId")
-            .populate("coachId");
+            .populate("coachId")
+            .populate("returnedByCoach");
 
         if (!request) {
             return res.status(404).json({
@@ -795,7 +798,37 @@ const updateRequestStatus = async (req, res) => {
                 if (equipment.availableQuantity === 0) equipment.status = "out-of-stock";
                 await equipment.save();
             }
-        } else if ((status === "returned" || status === "rejected") && prevStatus === "approved") {
+        } else if (status === "returned" && prevStatus !== "returned") {
+            if (equipment) {
+                const totalQty = request.quantity || 1;
+                const returnCond = condition || request.returnCondition || "good";
+                let damagedQty = 0;
+
+                if (returnCond === "damaged") {
+                    damagedQty = Math.max(1, Number(damagedCount) || totalQty);
+                    damagedQty = Math.min(totalQty, damagedQty);
+                } else if (returnCond === "partial_damaged") {
+                    damagedQty = Math.max(1, Number(damagedCount) || 1);
+                    damagedQty = Math.min(totalQty, damagedQty);
+                }
+
+                const goodQty = Math.max(0, totalQty - damagedQty);
+                equipment.availableQuantity = (equipment.availableQuantity || 0) + goodQty;
+                equipment.damagedQuantity = (equipment.damagedQuantity || 0) + damagedQty;
+
+                if (equipment.availableQuantity > 0) {
+                    equipment.status = "available";
+                } else if (equipment.damagedQuantity === equipment.totalQuantity) {
+                    equipment.status = "maintenance";
+                }
+                await equipment.save();
+
+                request.returnCondition = returnCond;
+                request.damagedQuantityReturned = damagedQty;
+                request.goodQuantityReturned = goodQty;
+                request.returnDate = new Date();
+            }
+        } else if (status === "rejected" && prevStatus === "approved") {
             if (equipment) {
                 equipment.availableQuantity += request.quantity;
                 if (equipment.availableQuantity > 0 && equipment.status === "out-of-stock") {
@@ -952,6 +985,1183 @@ const deleteRequest = async (req, res) => {
     }
 };
 
+// =====================================================
+// GET ALL TOURNAMENTS (ADMIN)
+// =====================================================
+const getAllTournaments = async (req, res) => {
+    try {
+        const { sport, status, search } = req.query;
+        let query = {};
+
+        if (sport && sport !== "all") {
+            query.sport = new RegExp(`^${sport}$`, "i");
+        }
+
+        if (status && status !== "all") {
+            query.status = status;
+        }
+
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: "i" } },
+                { tournamentId: { $regex: search, $options: "i" } },
+                { venue: { $regex: search, $options: "i" } },
+                { sport: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        const tournaments = await Tournament.find(query).sort({ startDate: 1, createdAt: -1 });
+
+        // Calculate summary metrics
+        const total = await Tournament.countDocuments();
+        const upcoming = await Tournament.countDocuments({ status: "upcoming" });
+        const ongoing = await Tournament.countDocuments({ status: { $in: ["ongoing", "in-progress"] } });
+        const completed = await Tournament.countDocuments({ status: "completed" });
+
+        return res.status(200).json({
+            success: true,
+            count: tournaments.length,
+            stats: {
+                total,
+                upcoming,
+                ongoing,
+                completed
+            },
+            tournaments
+        });
+    } catch (error) {
+        console.error("Error fetching tournaments:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch tournaments",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// CREATE TOURNAMENT (ADMIN)
+// =====================================================
+const createTournament = async (req, res) => {
+    try {
+        const {
+            name,
+            sport,
+            startDate,
+            endDate,
+            venue,
+            location,
+            status,
+            description,
+            organizer,
+            prizePool,
+            maxTeams,
+            registrationDeadline,
+            eligibility
+        } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Tournament name is required."
+            });
+        }
+
+        if (!sport || !sport.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Sport category is required."
+            });
+        }
+
+        if (!startDate || !endDate) {
+            return res.status(400).json({
+                success: false,
+                message: "Start date and End date are required."
+            });
+        }
+
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+
+        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid dates provided."
+            });
+        }
+
+        if (parsedEndDate < parsedStartDate) {
+            return res.status(400).json({
+                success: false,
+                message: "End date cannot be earlier than start date."
+            });
+        }
+
+        // Generate unique tournamentId
+        const count = await Tournament.countDocuments();
+        let tournamentId = `TRN${String(count + 1).padStart(3, "0")}`;
+        let exists = await Tournament.findOne({ tournamentId });
+        let offset = 1;
+        while (exists) {
+            tournamentId = `TRN${String(count + 1 + offset).padStart(3, "0")}`;
+            exists = await Tournament.findOne({ tournamentId });
+            offset++;
+        }
+
+        const tournament = await Tournament.create({
+            tournamentId,
+            name: name.trim(),
+            sport: sport.trim(),
+            startDate: parsedStartDate,
+            endDate: parsedEndDate,
+            venue: (venue || "Main Sports Complex").trim(),
+            location: (location || "BIT Campus").trim(),
+            status: status || "upcoming",
+            description: (description || "").trim(),
+            organizer: (organizer || "BIT Sports Council").trim(),
+            prizePool: (prizePool || "").trim(),
+            maxTeams: Number(maxTeams) || 16,
+            registeredTeamsCount: 0,
+            registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
+            eligibility: (eligibility || "Open to all enrolled students").trim()
+        });
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Tournament",
+                message: `Admin announced new tournament: '${tournament.name}' (${tournament.sport}).`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Tournament activity log failed:", logErr.message);
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: `Tournament '${tournament.name}' created successfully!`,
+            tournament
+        });
+    } catch (error) {
+        console.error("Error creating tournament:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to create tournament",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// UPDATE TOURNAMENT (ADMIN)
+// =====================================================
+const updateTournament = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            name,
+            sport,
+            startDate,
+            endDate,
+            venue,
+            location,
+            status,
+            description,
+            organizer,
+            prizePool,
+            maxTeams,
+            registeredTeamsCount,
+            registrationDeadline,
+            eligibility
+        } = req.body;
+
+        const tournament = await Tournament.findOne({
+            $or: [
+                { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
+                { tournamentId: id }
+            ]
+        });
+
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: "Tournament not found."
+            });
+        }
+
+        if (name) tournament.name = name.trim();
+        if (sport) tournament.sport = sport.trim();
+        if (startDate) tournament.startDate = new Date(startDate);
+        if (endDate) tournament.endDate = new Date(endDate);
+        if (venue) tournament.venue = venue.trim();
+        if (location) tournament.location = location.trim();
+        if (status) tournament.status = status;
+        if (description !== undefined) tournament.description = description.trim();
+        if (organizer) tournament.organizer = organizer.trim();
+        if (prizePool !== undefined) tournament.prizePool = prizePool.trim();
+        if (maxTeams !== undefined) tournament.maxTeams = Number(maxTeams) || tournament.maxTeams;
+        if (registeredTeamsCount !== undefined) tournament.registeredTeamsCount = Number(registeredTeamsCount) || 0;
+        if (registrationDeadline !== undefined) {
+            tournament.registrationDeadline = registrationDeadline ? new Date(registrationDeadline) : null;
+        }
+        if (eligibility) tournament.eligibility = eligibility.trim();
+
+        await tournament.save();
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Tournament",
+                message: `Tournament '${tournament.name}' was updated by admin.`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Tournament update activity log failed:", logErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Tournament '${tournament.name}' updated successfully.`,
+            tournament
+        });
+    } catch (error) {
+        console.error("Error updating tournament:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update tournament",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// DELETE TOURNAMENT (ADMIN)
+// =====================================================
+const deleteTournament = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const tournament = await Tournament.findOne({
+            $or: [
+                { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
+                { tournamentId: id }
+            ]
+        });
+
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: "Tournament not found."
+            });
+        }
+
+        const name = tournament.name;
+        await Tournament.findByIdAndDelete(tournament._id);
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Tournament",
+                message: `Tournament '${name}' was deleted by admin.`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Tournament delete activity log failed:", logErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Tournament '${name}' deleted successfully.`
+        });
+    } catch (error) {
+        console.error("Error deleting tournament:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to delete tournament",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// SCHEDULE TIME HELPER FUNCTIONS & OVERLAP VALIDATION
+// =====================================================
+const parseTimeToMinutes = (timeStr) => {
+    if (!timeStr) return null;
+    const trimmed = String(timeStr).trim();
+    const isPM = /pm/i.test(trimmed);
+    const isAM = /am/i.test(trimmed);
+    const clean = trimmed.replace(/[^\d:]/g, "");
+    const parts = clean.split(":");
+    let hours = parseInt(parts[0], 10) || 0;
+    const minutes = parseInt(parts[1], 10) || 0;
+    if (isPM && hours < 12) hours += 12;
+    if (isAM && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+};
+
+const checkOverlapConflict = async ({
+    venue,
+    date,
+    startMinutes,
+    endMinutes,
+    team1Id,
+    team2Id,
+    excludeScheduleId
+}) => {
+    if (!date || startMinutes === null || endMinutes === null) return null;
+
+    const matchDate = new Date(date);
+    const startOfDay = new Date(matchDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(matchDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const query = {
+        date: { $gte: startOfDay, $lte: endOfDay },
+        status: { $nin: ["cancelled", "postponed"] }
+    };
+
+    if (excludeScheduleId) {
+        query._id = { $ne: excludeScheduleId };
+    }
+
+    const existingSchedules = await Schedule.find(query)
+        .populate("tournamentId", "name tournamentId")
+        .populate("team1Id", "name")
+        .populate("team2Id", "name");
+
+    for (const existing of existingSchedules) {
+        const existStart = existing.startMinutes !== undefined && existing.startMinutes !== null
+            ? existing.startMinutes
+            : parseTimeToMinutes(existing.startTime || existing.time);
+        const existEnd = existing.endMinutes !== undefined && existing.endMinutes !== null
+            ? existing.endMinutes
+            : (existStart !== null ? existStart + 120 : null);
+
+        if (existStart === null || existEnd === null) continue;
+
+        // Interval overlap: (newStart < existEnd && newEnd > existStart)
+        const isTimeOverlap = startMinutes < existEnd && endMinutes > existStart;
+
+        if (isTimeOverlap) {
+            // Check Venue Overlap
+            if (venue && existing.venue && venue.trim().toLowerCase() === existing.venue.trim().toLowerCase()) {
+                const dateFormatted = matchDate.toLocaleDateString();
+                return {
+                    conflictType: "venue",
+                    message: `Venue Conflict: '${venue}' is already booked on ${dateFormatted} from ${existing.startTime || "start"} to ${existing.endTime || "end"} for '${existing.title}' (${existing.tournamentName || "Tournament"}). Time and venue cannot overlap.`,
+                    existing
+                };
+            }
+
+            // Check Team 1 Overlap
+            if (team1Id) {
+                const existingT1 = String(existing.team1Id?._id || existing.team1Id);
+                const existingT2 = String(existing.team2Id?._id || existing.team2Id);
+                if (existingT1 === String(team1Id) || existingT2 === String(team1Id)) {
+                    const dateFormatted = matchDate.toLocaleDateString();
+                    return {
+                        conflictType: "team",
+                        message: `Team Conflict: Team 1 is already scheduled to play on ${dateFormatted} from ${existing.startTime || "start"} to ${existing.endTime || "end"} in '${existing.title}'. Teams cannot play overlapping matches.`,
+                        existing
+                    };
+                }
+            }
+
+            // Check Team 2 Overlap
+            if (team2Id) {
+                const existingT1 = String(existing.team1Id?._id || existing.team1Id);
+                const existingT2 = String(existing.team2Id?._id || existing.team2Id);
+                if (existingT1 === String(team2Id) || existingT2 === String(team2Id)) {
+                    const dateFormatted = matchDate.toLocaleDateString();
+                    return {
+                        conflictType: "team",
+                        message: `Team Conflict: Team 2 is already scheduled to play on ${dateFormatted} from ${existing.startTime || "start"} to ${existing.endTime || "end"} in '${existing.title}'.`,
+                        existing
+                    };
+                }
+            }
+        }
+    }
+
+    return null;
+};
+
+// =====================================================
+// CHECK VENUE / SCHEDULE AVAILABILITY (API)
+// =====================================================
+const checkScheduleAvailability = async (req, res) => {
+    try {
+        const { venue, date, startTime, endTime, team1Id, team2Id, excludeId } = req.query;
+
+        if (!venue || !date || !startTime || !endTime) {
+            return res.status(400).json({
+                success: false,
+                message: "Venue, date, start time, and end time are required."
+            });
+        }
+
+        const startMinutes = parseTimeToMinutes(startTime);
+        const endMinutes = parseTimeToMinutes(endTime);
+
+        if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+            return res.status(400).json({
+                success: false,
+                message: "End time must be later than start time."
+            });
+        }
+
+        const conflict = await checkOverlapConflict({
+            venue,
+            date,
+            startMinutes,
+            endMinutes,
+            team1Id,
+            team2Id,
+            excludeScheduleId: excludeId
+        });
+
+        if (conflict) {
+            return res.status(200).json({
+                success: true,
+                available: false,
+                conflictType: conflict.conflictType,
+                message: conflict.message
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            available: true,
+            message: `Venue '${venue}' is available on this date & time slot.`
+        });
+    } catch (error) {
+        console.error("Availability check error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to check availability",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// GET ALL SCHEDULES (ADMIN)
+// =====================================================
+const getAllSchedules = async (req, res) => {
+    try {
+        const { tournamentId, sport, status, date, venue, search } = req.query;
+        let query = {};
+
+        if (tournamentId && tournamentId !== "all") {
+            query.tournamentId = tournamentId;
+        }
+
+        if (sport && sport !== "all") {
+            query.sport = new RegExp(`^${sport}$`, "i");
+        }
+
+        if (status && status !== "all") {
+            query.status = status;
+        }
+
+        if (venue && venue !== "all") {
+            query.venue = new RegExp(`^${venue}$`, "i");
+        }
+
+        if (date) {
+            const searchDate = new Date(date);
+            const startOfDay = new Date(searchDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(searchDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            query.date = { $gte: startOfDay, $lte: endOfDay };
+        }
+
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: "i" } },
+                { scheduleId: { $regex: search, $options: "i" } },
+                { tournamentName: { $regex: search, $options: "i" } },
+                { team1Name: { $regex: search, $options: "i" } },
+                { team2Name: { $regex: search, $options: "i" } },
+                { venue: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        const schedules = await Schedule.find(query)
+            .populate("tournamentId", "name tournamentId sport startDate endDate status")
+            .populate("team1Id", "name sport coachId students")
+            .populate("team2Id", "name sport coachId students")
+            .populate("coachId", "name coachId email")
+            .populate("winnerTeamId", "name")
+            .sort({ date: 1, startMinutes: 1, createdAt: -1 });
+
+        // Calculate summary metrics
+        const total = await Schedule.countDocuments();
+        const upcoming = await Schedule.countDocuments({ status: { $in: ["scheduled", "upcoming"] } });
+        const live = await Schedule.countDocuments({ status: { $in: ["in-progress", "ongoing"] } });
+        const completed = await Schedule.countDocuments({ status: "completed" });
+
+        return res.status(200).json({
+            success: true,
+            count: schedules.length,
+            stats: {
+                total,
+                upcoming,
+                live,
+                completed
+            },
+            schedules
+        });
+    } catch (error) {
+        console.error("Error fetching schedules:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch schedules",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// CREATE SCHEDULE (ADMIN) - WITH OVERLAP PREVENTION
+// =====================================================
+const createSchedule = async (req, res) => {
+    try {
+        const {
+            tournamentId,
+            title,
+            sport,
+            round,
+            team1Id,
+            team1Name,
+            team2Id,
+            team2Name,
+            venue,
+            date,
+            startTime,
+            endTime,
+            referee,
+            remarks
+        } = req.body;
+
+        if (!title || !title.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Match title / fixture name is required."
+            });
+        }
+
+        if (!venue || !venue.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Venue is required."
+            });
+        }
+
+        if (!date) {
+            return res.status(400).json({
+                success: false,
+                message: "Match date is required."
+            });
+        }
+
+        if (!startTime || !endTime) {
+            return res.status(400).json({
+                success: false,
+                message: "Start time and End time are required."
+            });
+        }
+
+        const startMinutes = parseTimeToMinutes(startTime);
+        const endMinutes = parseTimeToMinutes(endTime);
+
+        if (startMinutes === null || endMinutes === null) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid time format provided (e.g. use 10:00, 14:30)."
+            });
+        }
+
+        if (endMinutes <= startMinutes) {
+            return res.status(400).json({
+                success: false,
+                message: "End time must be later than start time."
+            });
+        }
+
+        // ==========================================
+        // OVERLAP PREVENTION CHECK (VENUE & TEAMS)
+        // ==========================================
+        const conflict = await checkOverlapConflict({
+            venue: venue.trim(),
+            date,
+            startMinutes,
+            endMinutes,
+            team1Id,
+            team2Id
+        });
+
+        if (conflict) {
+            return res.status(409).json({
+                success: false,
+                conflictType: conflict.conflictType,
+                message: conflict.message
+            });
+        }
+
+        // Resolve Tournament details
+        let tournament = null;
+        if (tournamentId) {
+            tournament = await Tournament.findById(tournamentId);
+        }
+
+        // Resolve Teams & Coaches
+        let resolvedTeam1Name = team1Name || "";
+        let coachId = null;
+        let coachUserId = "";
+
+        if (team1Id) {
+            const t1 = await Team.findById(team1Id).populate("coachId");
+            if (t1) {
+                resolvedTeam1Name = t1.name;
+                coachId = t1.coachId?._id || t1.coachId || null;
+                coachUserId = t1.coachUserId || "";
+            }
+        }
+
+        let resolvedTeam2Name = team2Name || "";
+        let coach2Id = null;
+        if (team2Id) {
+            const t2 = await Team.findById(team2Id);
+            if (t2) {
+                resolvedTeam2Name = t2.name;
+                coach2Id = t2.coachId || null;
+            }
+        }
+
+        // Generate scheduleId
+        const count = await Schedule.countDocuments();
+        let scheduleId = `SCH${String(count + 1).padStart(3, "0")}`;
+        let exists = await Schedule.findOne({ scheduleId });
+        let offset = 1;
+        while (exists) {
+            scheduleId = `SCH${String(count + 1 + offset).padStart(3, "0")}`;
+            exists = await Schedule.findOne({ scheduleId });
+            offset++;
+        }
+
+        const newSchedule = await Schedule.create({
+            scheduleId,
+            tournamentId: tournament?._id || null,
+            tournamentName: tournament?.name || (tournamentId ? "Tournament" : ""),
+            title: title.trim(),
+            sport: (sport || tournament?.sport || "General").trim(),
+            round: (round || "League Match").trim(),
+            team1Id: team1Id || null,
+            team1Name: resolvedTeam1Name,
+            team2Id: team2Id || null,
+            team2Name: resolvedTeam2Name,
+            coachId,
+            coachUserId,
+            coach2Id,
+            venue: venue.trim(),
+            date: new Date(date),
+            startTime: startTime.trim(),
+            endTime: endTime.trim(),
+            startMinutes,
+            endMinutes,
+            status: "scheduled",
+            referee: (referee || "").trim(),
+            remarks: (remarks || "").trim(),
+            // Legacy aliases
+            opponent: resolvedTeam2Name,
+            opponentTeam: resolvedTeam2Name,
+            time: `${startTime.trim()} - ${endTime.trim()}`,
+            teamId: team1Id || null
+        });
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Match",
+                message: `Match scheduled: '${newSchedule.title}' on ${new Date(date).toLocaleDateString()} at ${newSchedule.venue} (${startTime} - ${endTime}).`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Schedule activity log failed:", logErr.message);
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: `Match '${newSchedule.title}' scheduled successfully without conflicts!`,
+            schedule: newSchedule
+        });
+    } catch (error) {
+        console.error("Error creating schedule:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to schedule match",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// UPDATE SCHEDULE (ADMIN) - WITH OVERLAP PREVENTION
+// =====================================================
+const updateSchedule = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            tournamentId,
+            title,
+            sport,
+            round,
+            team1Id,
+            team1Name,
+            team2Id,
+            team2Name,
+            venue,
+            date,
+            startTime,
+            endTime,
+            status,
+            score,
+            winnerTeamId,
+            winnerName,
+            referee,
+            remarks
+        } = req.body;
+
+        const schedule = await Schedule.findOne({
+            $or: [
+                { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
+                { scheduleId: id }
+            ]
+        });
+
+        if (!schedule) {
+            return res.status(404).json({
+                success: false,
+                message: "Schedule fixture not found."
+            });
+        }
+
+        const finalVenue = (venue || schedule.venue).trim();
+        const finalDate = date ? new Date(date) : schedule.date;
+        const finalStartTime = startTime ? startTime.trim() : schedule.startTime;
+        const finalEndTime = endTime ? endTime.trim() : schedule.endTime;
+        const finalStartMinutes = parseTimeToMinutes(finalStartTime);
+        const finalEndMinutes = parseTimeToMinutes(finalEndTime);
+        const finalTeam1Id = team1Id !== undefined ? team1Id : schedule.team1Id;
+        const finalTeam2Id = team2Id !== undefined ? team2Id : schedule.team2Id;
+
+        if (finalEndMinutes <= finalStartMinutes) {
+            return res.status(400).json({
+                success: false,
+                message: "End time must be later than start time."
+            });
+        }
+
+        // ==========================================
+        // OVERLAP PREVENTION (EXCLUDING CURRENT MATCH)
+        // ==========================================
+        if (status !== "cancelled") {
+            const conflict = await checkOverlapConflict({
+                venue: finalVenue,
+                date: finalDate,
+                startMinutes: finalStartMinutes,
+                endMinutes: finalEndMinutes,
+                team1Id: finalTeam1Id,
+                team2Id: finalTeam2Id,
+                excludeScheduleId: schedule._id
+            });
+
+            if (conflict) {
+                return res.status(409).json({
+                    success: false,
+                    conflictType: conflict.conflictType,
+                    message: conflict.message
+                });
+            }
+        }
+
+        if (title) schedule.title = title.trim();
+        if (sport) schedule.sport = sport.trim();
+        if (round) schedule.round = round.trim();
+        if (tournamentId !== undefined) schedule.tournamentId = tournamentId || null;
+        if (team1Id !== undefined) schedule.team1Id = team1Id || null;
+        if (team1Name !== undefined) schedule.team1Name = team1Name.trim();
+        if (team2Id !== undefined) schedule.team2Id = team2Id || null;
+        if (team2Name !== undefined) schedule.team2Name = team2Name.trim();
+        if (venue) schedule.venue = finalVenue;
+        if (date) schedule.date = finalDate;
+        if (startTime) schedule.startTime = finalStartTime;
+        if (endTime) schedule.endTime = finalEndTime;
+        schedule.startMinutes = finalStartMinutes;
+        schedule.endMinutes = finalEndMinutes;
+        if (status) schedule.status = status;
+        if (score !== undefined) schedule.score = score.trim();
+        if (winnerTeamId !== undefined) schedule.winnerTeamId = winnerTeamId || null;
+        if (winnerName !== undefined) schedule.winnerName = winnerName.trim();
+        if (referee !== undefined) schedule.referee = referee.trim();
+        if (remarks !== undefined) schedule.remarks = remarks.trim();
+
+        // Legacy updates
+        schedule.opponent = schedule.team2Name;
+        schedule.opponentTeam = schedule.team2Name;
+        schedule.time = `${schedule.startTime} - ${schedule.endTime}`;
+
+        await schedule.save();
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Match",
+                message: `Match schedule updated: '${schedule.title}' (${schedule.status}) on ${new Date(schedule.date).toLocaleDateString()}.`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Schedule update activity log failed:", logErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Schedule for '${schedule.title}' updated successfully.`,
+            schedule
+        });
+    } catch (error) {
+        console.error("Error updating schedule:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update schedule",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// DELETE SCHEDULE (ADMIN)
+// =====================================================
+const deleteSchedule = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const schedule = await Schedule.findOne({
+            $or: [
+                { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
+                { scheduleId: id }
+            ]
+        });
+
+        if (!schedule) {
+            return res.status(404).json({
+                success: false,
+                message: "Schedule not found."
+            });
+        }
+
+        const title = schedule.title;
+        await Schedule.findByIdAndDelete(schedule._id);
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Match",
+                message: `Match schedule '${title}' was deleted by admin.`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Schedule delete activity log failed:", logErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Schedule '${title}' deleted successfully.`
+        });
+    } catch (error) {
+        console.error("Error deleting schedule:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to delete schedule",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// GET ALL VENUES (ADMIN)
+// =====================================================
+const getAllVenues = async (req, res) => {
+    try {
+        const { sport, status, search } = req.query;
+        let query = {};
+
+        if (sport && sport !== "all" && sport !== "All Sports") {
+            query.sport = new RegExp(`^${sport}$`, "i");
+        }
+
+        if (status && status !== "all") {
+            query.status = status;
+        }
+
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: "i" } },
+                { venueId: { $regex: search, $options: "i" } },
+                { location: { $regex: search, $options: "i" } },
+                { sport: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        let total = await Venue.countDocuments();
+        if (total === 0) {
+            const defaultVenues = [
+                { venueId: "VEN001", name: "Main Sports Complex", location: "North Campus Sports Wing", capacity: 2000, sport: "Multi-Sport / General", status: "available" },
+                { venueId: "VEN002", name: "Cricket Ground A", location: "Main Pavilion Ground", capacity: 1500, sport: "Cricket", status: "available" },
+                { venueId: "VEN003", name: "Cricket Ground B", location: "East Campus Field", capacity: 500, sport: "Cricket", status: "available" },
+                { venueId: "VEN004", name: "Football Arena", location: "Athletics Complex", capacity: 1200, sport: "Football", status: "available" },
+                { venueId: "VEN005", name: "Indoor Badminton Hall - Court 1", location: "Indoor Stadium Block B", capacity: 300, sport: "Badminton", status: "available" },
+                { venueId: "VEN006", name: "Indoor Badminton Hall - Court 2", location: "Indoor Stadium Block B", capacity: 300, sport: "Badminton", status: "available" },
+                { venueId: "VEN007", name: "Basketball Court 1", location: "Sports Quad Level 1", capacity: 400, sport: "Basketball", status: "available" },
+                { venueId: "VEN008", name: "Tennis Complex Court 1", location: "South Tennis Arena", capacity: 250, sport: "Tennis", status: "available" },
+                { venueId: "VEN009", name: "Volleyball Court A", location: "West Sports Ground", capacity: 300, sport: "Volleyball", status: "available" },
+                { venueId: "VEN010", name: "Athletics Synthetic Track", location: "Main Stadium", capacity: 2500, sport: "Athletics", status: "available" }
+            ];
+            await Venue.insertMany(defaultVenues);
+            total = defaultVenues.length;
+        }
+
+        const venues = await Venue.find(query).sort({ name: 1 });
+
+        const available = await Venue.countDocuments({ status: "available" });
+        const occupied = await Venue.countDocuments({ status: "occupied" });
+        const maintenance = await Venue.countDocuments({ status: "maintenance" });
+
+        return res.status(200).json({
+            success: true,
+            count: venues.length,
+            stats: {
+                total,
+                available,
+                occupied,
+                maintenance
+            },
+            venues
+        });
+    } catch (error) {
+        console.error("Error fetching venues:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch venues",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// CREATE VENUE (ADMIN)
+// =====================================================
+const createVenue = async (req, res) => {
+    try {
+        const { name, location, capacity, sport, status } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Venue name is required."
+            });
+        }
+
+        // Check if venue with same name already exists
+        const existingVenue = await Venue.findOne({
+            name: { $regex: new RegExp(`^${name.trim()}$`, "i") }
+        });
+
+        if (existingVenue) {
+            return res.status(400).json({
+                success: false,
+                message: `Venue with name '${name.trim()}' already exists.`
+            });
+        }
+
+        // Generate venueId
+        const count = await Venue.countDocuments();
+        let venueId = `VEN${String(count + 1).padStart(3, "0")}`;
+        let exists = await Venue.findOne({ venueId });
+        let offset = 1;
+        while (exists) {
+            venueId = `VEN${String(count + 1 + offset).padStart(3, "0")}`;
+            exists = await Venue.findOne({ venueId });
+            offset++;
+        }
+
+        const newVenue = await Venue.create({
+            venueId,
+            name: name.trim(),
+            location: (location || "").trim(),
+            capacity: Number(capacity) || 0,
+            sport: (sport || "General").trim(),
+            status: status || "available"
+        });
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Venue Added",
+                message: `New sports venue '${newVenue.name}' (${newVenue.venueId}) added.`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Venue activity log failed:", logErr.message);
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: `Venue '${newVenue.name}' created successfully!`,
+            venue: newVenue
+        });
+    } catch (error) {
+        console.error("Error creating venue:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to create venue",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// UPDATE VENUE (ADMIN)
+// =====================================================
+const updateVenue = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, location, capacity, sport, status } = req.body;
+
+        const venue = await Venue.findOne({
+            $or: [
+                { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
+                { venueId: id }
+            ]
+        });
+
+        if (!venue) {
+            return res.status(404).json({
+                success: false,
+                message: "Venue not found."
+            });
+        }
+
+        if (name && name.trim() !== venue.name) {
+            const duplicate = await Venue.findOne({
+                name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
+                _id: { $ne: venue._id }
+            });
+            if (duplicate) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Another venue with name '${name.trim()}' already exists.`
+                });
+            }
+            venue.name = name.trim();
+        }
+
+        if (location !== undefined) venue.location = location.trim();
+        if (capacity !== undefined) venue.capacity = Number(capacity) || 0;
+        if (sport !== undefined) venue.sport = sport.trim();
+        if (status !== undefined) venue.status = status;
+
+        await venue.save();
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Venue Updated",
+                message: `Venue '${venue.name}' (${venue.status}) details were updated.`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Venue update activity log failed:", logErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Venue '${venue.name}' updated successfully!`,
+            venue
+        });
+    } catch (error) {
+        console.error("Error updating venue:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update venue",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// DELETE VENUE (ADMIN)
+// =====================================================
+const deleteVenue = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const venue = await Venue.findOne({
+            $or: [
+                { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
+                { venueId: id }
+            ]
+        });
+
+        if (!venue) {
+            return res.status(404).json({
+                success: false,
+                message: "Venue not found."
+            });
+        }
+
+        const venueName = venue.name;
+        await Venue.findByIdAndDelete(venue._id);
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Venue Deleted",
+                message: `Venue '${venueName}' was removed from the system.`,
+                role: "admin",
+                userId: req.user?.userId || "admin"
+            });
+        } catch (logErr) {
+            console.warn("Venue delete activity log failed:", logErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Venue '${venueName}' deleted successfully.`
+        });
+    } catch (error) {
+        console.error("Error deleting venue:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to delete venue",
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getDashboard,
     addCoach,
@@ -968,5 +2178,20 @@ module.exports = {
     getAllRequests,
     updateRequestStatus,
     createAdminRequest,
-    deleteRequest
+    deleteRequest,
+    getAllTournaments,
+    createTournament,
+    updateTournament,
+    deleteTournament,
+    getAllSchedules,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
+    checkScheduleAvailability,
+    checkOverlapConflict,
+    parseTimeToMinutes,
+    getAllVenues,
+    createVenue,
+    updateVenue,
+    deleteVenue
 };

@@ -1,5 +1,4 @@
 const express = require("express");
-
 const router = express.Router();
 
 const {
@@ -8,6 +7,8 @@ const {
     getCoachTeam,
     getCoachEquipment,
     getCoachRequests,
+    returnEquipmentByCoach,
+    returnEquipmentDirect,
     getCoachTournaments,
     getCoachSchedules
 } = require("../controllers/coachController");
@@ -47,11 +48,39 @@ router.get(
     getCoachEquipment
 );
 
+router.post(
+    "/equipment/return",
+    authMiddleware,
+    roleMiddleware("coach"),
+    returnEquipmentDirect
+);
+
+router.post(
+    "/return-equipment",
+    authMiddleware,
+    roleMiddleware("coach"),
+    returnEquipmentDirect
+);
+
 router.get(
     "/requests",
     authMiddleware,
     roleMiddleware("coach"),
     getCoachRequests
+);
+
+router.post(
+    "/requests/:id/return",
+    authMiddleware,
+    roleMiddleware("coach"),
+    returnEquipmentByCoach
+);
+
+router.put(
+    "/requests/:id/return",
+    authMiddleware,
+    roleMiddleware("coach"),
+    returnEquipmentByCoach
 );
 
 router.get(

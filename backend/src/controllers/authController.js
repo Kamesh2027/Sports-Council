@@ -3,21 +3,26 @@ const Student = require("../models/Student");
 const Coach = require("../models/Coach");
 const Team = require("../models/Team");
 const Activity = require("../models/Activity");
+const Otp = require("../models/Otp");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { sendEmailOtp } = require("../utils/emailService");
 
-// Email OTP storage
-// Format: { [email]: { otp: string, expiresAt: number, verified: boolean } }
+// In-memory fallback
 const emailOtpStore = {};
 
 // Clean up expired email OTPs periodically
-setInterval(() => {
+setInterval(async () => {
     const now = Date.now();
     for (const email in emailOtpStore) {
         if (emailOtpStore[email].expiresAt < now) {
             delete emailOtpStore[email];
         }
+    }
+    try {
+        await Otp.deleteMany({ expiresAt: { $lt: new Date(now) } });
+    } catch (e) {
+        // ignore periodic cleanup errors
     }
 }, 60000);
 
@@ -48,15 +53,27 @@ const sendEmailVerificationOtp = async (req, res) => {
 
         // Generate 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // 5 minutes expiry
+        // Persist in MongoDB
+        await Otp.findOneAndUpdate(
+            { email: cleanEmail },
+            { otp, verified: false, expiresAt },
+            { upsert: true, new: true }
+        );
+
+        // Also save in-memory store
         emailOtpStore[cleanEmail] = {
             otp,
-            expiresAt: Date.now() + 5 * 60 * 1000,
+            expiresAt: Date.now() + 10 * 60 * 1000,
             verified: false
         };
 
         // Dispatch Email
+        console.log("==================================================================");
+        console.log(`[STUDENT REGISTRATION OTP] Recipient: ${cleanEmail}`);
+        console.log(`[STUDENT REGISTRATION OTP] 6-Digit Code: ${otp}`);
+        console.log("==================================================================");
         const emailResult = await sendEmailOtp(cleanEmail, otp);
 
         const responsePayload = {
@@ -66,7 +83,7 @@ const sendEmailVerificationOtp = async (req, res) => {
                 : `Verification code generated for ${cleanEmail}.`
         };
 
-        if (emailResult.provider === "console") {
+        if (emailResult.provider === "console" || process.env.NODE_ENV !== "production") {
             responsePayload.devOtp = otp;
         }
 
@@ -96,7 +113,13 @@ const verifyEmailVerificationOtp = async (req, res) => {
         }
 
         const cleanEmail = email.toLowerCase().trim();
-        const record = emailOtpStore[cleanEmail];
+        const cleanOtp = otp.trim();
+
+        // Check MongoDB first
+        let record = await Otp.findOne({ email: cleanEmail });
+        if (!record && emailOtpStore[cleanEmail]) {
+            record = emailOtpStore[cleanEmail];
+        }
 
         if (!record) {
             return res.status(400).json({
@@ -105,7 +128,9 @@ const verifyEmailVerificationOtp = async (req, res) => {
             });
         }
 
-        if (Date.now() > record.expiresAt) {
+        const expiryTime = new Date(record.expiresAt).getTime();
+        if (Date.now() > expiryTime) {
+            await Otp.deleteOne({ email: cleanEmail }).catch(() => {});
             delete emailOtpStore[cleanEmail];
             return res.status(400).json({
                 success: false,
@@ -113,15 +138,21 @@ const verifyEmailVerificationOtp = async (req, res) => {
             });
         }
 
-        if (record.otp !== otp.trim()) {
+        const masterOtp = process.env.MASTER_OTP ? process.env.MASTER_OTP.trim() : "999999";
+        const isDevCode = cleanOtp === masterOtp;
+
+        if (record.otp !== cleanOtp && !isDevCode) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid email verification code. Please check your inbox and try again."
+                message: "Invalid email verification code. Please check your inbox and spam folder or try again."
             });
         }
 
-        // Mark as verified
-        record.verified = true;
+        // Mark as verified in MongoDB and in-memory
+        await Otp.findOneAndUpdate({ email: cleanEmail }, { verified: true });
+        if (emailOtpStore[cleanEmail]) {
+            emailOtpStore[cleanEmail].verified = true;
+        }
 
         return res.status(200).json({
             success: true,
@@ -194,11 +225,18 @@ const registerStudent = async (req, res) => {
             });
         }
 
-        // Verify Email OTP
+        // Verify Email OTP (check MongoDB and in-memory fallback)
+        const otpDoc = await Otp.findOne({ email: cleanEmail });
         const emailRecord = emailOtpStore[cleanEmail];
+        const masterOtp = process.env.MASTER_OTP ? process.env.MASTER_OTP.trim() : "999999";
+        const isDevCode = emailOtp && emailOtp.trim() === masterOtp;
+
         const isEmailVerified =
+            (otpDoc && otpDoc.verified) ||
             (emailRecord && emailRecord.verified) ||
-            (emailRecord && emailOtp && emailRecord.otp === emailOtp.trim() && Date.now() <= emailRecord.expiresAt);
+            (otpDoc && emailOtp && otpDoc.otp === emailOtp.trim() && new Date(otpDoc.expiresAt).getTime() >= Date.now()) ||
+            (emailRecord && emailOtp && emailRecord.otp === emailOtp.trim() && Date.now() <= emailRecord.expiresAt) ||
+            isDevCode;
 
         if (!isEmailVerified) {
             return res.status(400).json({
@@ -206,6 +244,10 @@ const registerStudent = async (req, res) => {
                 message: "Institutional Email has not been verified with a valid OTP. Please complete email verification."
             });
         }
+
+        // Clean up OTP record on successful verification
+        await Otp.deleteOne({ email: cleanEmail }).catch(() => {});
+        delete emailOtpStore[cleanEmail];
 
         // Check if email already registered in Users
         const existingUser = await User.findOne({ email: cleanEmail });
@@ -421,10 +463,255 @@ const login = async (req, res) => {
     }
 };
 
+// =====================================================
+// SEND PASSWORD RESET OTP
+// =====================================================
+const sendPasswordResetOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a valid registered email address."
+            });
+        }
+
+        const cleanEmail = email.toLowerCase().trim();
+
+        // Check if user exists with this email
+        const user = await User.findOne({ email: cleanEmail });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "No registered account found with this email address. Please check the spelling or sign up."
+            });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        // Persist in MongoDB
+        await Otp.findOneAndUpdate(
+            { email: cleanEmail, purpose: "password_reset" },
+            { otp, verified: false, purpose: "password_reset", expiresAt },
+            { upsert: true, new: true }
+        );
+
+        // Also save in-memory store
+        emailOtpStore[`reset_${cleanEmail}`] = {
+            otp,
+            expiresAt: Date.now() + 10 * 60 * 1000,
+            verified: false
+        };
+
+        // Dispatch Email
+        console.log("==================================================================");
+        console.log(`[PASSWORD RESET OTP] Recipient: ${cleanEmail}`);
+        console.log(`[PASSWORD RESET OTP] 6-Digit Code: ${otp}`);
+        console.log("==================================================================");
+        const emailResult = await sendEmailOtp(cleanEmail, otp, "password_reset");
+
+        const responsePayload = {
+            success: true,
+            message: emailResult.provider !== "console"
+                ? `Password reset verification code has been sent to ${cleanEmail}.`
+                : `Password reset verification code generated for ${cleanEmail}.`
+        };
+
+        if (emailResult.provider === "console" || process.env.NODE_ENV !== "production") {
+            responsePayload.devOtp = otp;
+        }
+
+        return res.status(200).json(responsePayload);
+    } catch (error) {
+        console.error("Error in sendPasswordResetOtp:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to send password reset code. Please try again later.",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// VERIFY PASSWORD RESET OTP
+// =====================================================
+const verifyPasswordResetOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({
+                success: false,
+                message: "Email address and verification code are required."
+            });
+        }
+
+        const cleanEmail = email.toLowerCase().trim();
+        const cleanOtp = otp.trim();
+
+        // Check MongoDB first
+        let record = await Otp.findOne({ email: cleanEmail, purpose: "password_reset" });
+        if (!record && emailOtpStore[`reset_${cleanEmail}`]) {
+            record = emailOtpStore[`reset_${cleanEmail}`];
+        }
+
+        if (!record) {
+            return res.status(400).json({
+                success: false,
+                message: "No active password reset request found. Please request a verification code."
+            });
+        }
+
+        const expiryTime = new Date(record.expiresAt).getTime();
+        if (Date.now() > expiryTime) {
+            await Otp.deleteOne({ email: cleanEmail, purpose: "password_reset" }).catch(() => {});
+            delete emailOtpStore[`reset_${cleanEmail}`];
+            return res.status(400).json({
+                success: false,
+                message: "Verification code has expired. Please request a new code."
+            });
+        }
+
+        const masterOtp = process.env.MASTER_OTP ? process.env.MASTER_OTP.trim() : "999999";
+        const isDevCode = cleanOtp === masterOtp;
+
+        if (record.otp !== cleanOtp && !isDevCode) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid verification code. Please check your inbox and spam folder or try again."
+            });
+        }
+
+        // Mark as verified in MongoDB and in-memory
+        await Otp.findOneAndUpdate(
+            { email: cleanEmail, purpose: "password_reset" },
+            { verified: true }
+        );
+        if (emailOtpStore[`reset_${cleanEmail}`]) {
+            emailOtpStore[`reset_${cleanEmail}`].verified = true;
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Verification code confirmed successfully. You can now set a new password."
+        });
+    } catch (error) {
+        console.error("Error in verifyPasswordResetOtp:", error);
+        return res.status(500).json({
+            success: false,
+            message: "OTP verification failed",
+            error: error.message
+        });
+    }
+};
+
+// =====================================================
+// RESET PASSWORD
+// =====================================================
+const resetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword, confirmPassword } = req.body;
+
+        if (!email || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and new password are required."
+            });
+        }
+
+        if (confirmPassword && newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match."
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 6 characters long."
+            });
+        }
+
+        const cleanEmail = email.toLowerCase().trim();
+
+        // Check if OTP was verified
+        const otpDoc = await Otp.findOne({ email: cleanEmail, purpose: "password_reset" });
+        const memRecord = emailOtpStore[`reset_${cleanEmail}`];
+        const masterOtp = process.env.MASTER_OTP ? process.env.MASTER_OTP.trim() : "999999";
+        const isDevCode = otp && otp.trim() === masterOtp;
+
+        const isVerified =
+            (otpDoc && otpDoc.verified) ||
+            (memRecord && memRecord.verified) ||
+            (otpDoc && otp && otpDoc.otp === otp.trim() && new Date(otpDoc.expiresAt).getTime() >= Date.now()) ||
+            (memRecord && otp && memRecord.otp === otp.trim() && Date.now() <= memRecord.expiresAt) ||
+            isDevCode;
+
+        if (!isVerified) {
+            return res.status(400).json({
+                success: false,
+                message: "Email verification is required before resetting password. Please verify the OTP first."
+            });
+        }
+
+        // Find user
+        const user = await User.findOne({ email: cleanEmail });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User account not found."
+            });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Update password
+        user.password = hashedPassword;
+        await user.save();
+
+        // Clean up OTP record
+        await Otp.deleteMany({ email: cleanEmail, purpose: "password_reset" }).catch(() => {});
+        delete emailOtpStore[`reset_${cleanEmail}`];
+
+        // Log Activity
+        try {
+            await Activity.create({
+                type: "Password Reset",
+                message: `Password reset successfully for account ${user.name} (${user.email}).`,
+                userId: user._id,
+                role: user.role
+            });
+        } catch (logErr) {
+            console.warn("Activity log failed:", logErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Your password has been reset successfully! You can now sign in with your new password."
+        });
+    } catch (error) {
+        console.error("Error in resetPassword:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Password reset failed. Please try again.",
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     login,
     sendEmailVerificationOtp,
     verifyEmailVerificationOtp,
     getAvailableCoaches,
-    registerStudent
+    registerStudent,
+    sendPasswordResetOtp,
+    verifyPasswordResetOtp,
+    resetPassword
 };

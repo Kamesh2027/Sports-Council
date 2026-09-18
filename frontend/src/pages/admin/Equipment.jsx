@@ -365,6 +365,7 @@ const Equipment = () => {
               padding: "10px 18px",
               borderRadius: "6px",
               border: "none",
+              fontSize: "12px",
               cursor: "pointer"
             }}
           >

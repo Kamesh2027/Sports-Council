@@ -14,12 +14,10 @@ import {
   AlertCircle,
   Clock,
   Package,
-  User,
   Users,
   ShieldCheck,
-  Calendar,
-  Layers,
-  ArrowRight
+  Wrench,
+  AlertTriangle
 } from "lucide-react";
 
 const Requests = () => {
@@ -266,31 +264,38 @@ const Requests = () => {
     return matchesSearch && matchesStatus && matchesRole;
   });
 
-  const getStatusBadge = (status) => {
-    switch (status?.toLowerCase()) {
-      case "approved":
-        return <span className="status-badge success">Approved / Loaned</span>;
-      case "returned":
-        return (
-          <span
-            style={{
-              padding: "4px 8px",
-              backgroundColor: "rgba(5, 199, 238, 0.15)",
-              border: "1px solid rgba(5, 199, 238, 0.3)",
-              borderRadius: "4px",
-              color: "#05c7ee",
-              fontSize: "12px",
-              fontWeight: "600"
-            }}
-          >
-            Returned to Stock
-          </span>
-        );
-      case "rejected":
-        return <span className="status-badge danger">Rejected</span>;
-      default:
-        return <span className="status-badge warning">Pending Review</span>;
+  const getStatusBadge = (req) => {
+    if (req.status === "approved") {
+      return <span className="status-badge success">Approved / Loaned</span>;
     }
+    if (req.status === "returned") {
+      const isDamaged = req.returnCondition === "damaged" || (req.damagedQuantityReturned || 0) > 0;
+      return (
+        <span
+          style={{
+            padding: "4px 8px",
+            backgroundColor: isDamaged ? "rgba(239, 68, 68, 0.15)" : "rgba(5, 199, 238, 0.15)",
+            border: `1px solid ${isDamaged ? "rgba(239, 68, 68, 0.3)" : "rgba(5, 199, 238, 0.3)"}`,
+            borderRadius: "4px",
+            color: isDamaged ? "#f87171" : "#05c7ee",
+            fontSize: "12px",
+            fontWeight: "600",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px"
+          }}
+        >
+          {isDamaged ? <Wrench size={12} /> : <CheckCircle2 size={12} />}
+          {isDamaged
+            ? `Returned (Damaged: ${req.damagedQuantityReturned || 1} units)`
+            : "Returned (Good Condition)"}
+        </span>
+      );
+    }
+    if (req.status === "rejected") {
+      return <span className="status-badge danger">Rejected</span>;
+    }
+    return <span className="status-badge warning">Pending Review</span>;
   };
 
   return (
@@ -312,7 +317,7 @@ const Requests = () => {
             Equipment & Member Requests
           </h1>
           <p style={{ margin: "4px 0 0 0", color: "#8da3b5", fontSize: "13px" }}>
-            Review pending sports gear requests, issue equipment loans, track due dates, and process student membership approvals.
+            Review pending sports gear requests, issue equipment loans, track coach returns and damage reports, and manage athlete approvals.
           </p>
         </div>
 
@@ -327,14 +332,15 @@ const Requests = () => {
               backgroundColor: "#05c7ee",
               color: "#07131a",
               fontWeight: "700",
+              fontSize: "12px",
               padding: "10px 18px",
               borderRadius: "6px",
               border: "none",
               cursor: "pointer"
             }}
           >
-            <Plus size={18} />
-            ISSUE GEAR / LOG REQUEST
+            {/* <Plus size={18} /> */}
+            ISSUE GEAR
           </button>
         </div>
       </div>
@@ -382,7 +388,7 @@ const Requests = () => {
           }}
         >
           <div>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "#8da3b5" }}>TOTAL REQUESTS</span>
+            <span style={{ fontSize: "11px", fontWeight: "500", color: "#8da3b5" }}>TOTAL REQUESTS</span>
             <h2 style={{ margin: "4px 0 0 0", fontSize: "24px", color: "#f0f6fc" }}>{requests.length}</h2>
           </div>
           <div style={{ padding: "10px", borderRadius: "8px", backgroundColor: "rgba(5, 199, 238, 0.1)", color: "#05c7ee" }}>
@@ -403,7 +409,7 @@ const Requests = () => {
           }}
         >
           <div>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "#8da3b5" }}>PENDING APPROVAL</span>
+            <span style={{ fontSize: "11px", fontWeight: "500", color: "#8da3b5" }}>PENDING APPROVAL</span>
             <h2 style={{ margin: "4px 0 0 0", fontSize: "24px", color: pendingRequests.length > 0 ? "#facc15" : "#f0f6fc" }}>
               {pendingRequests.length}
             </h2>
@@ -426,7 +432,7 @@ const Requests = () => {
           }}
         >
           <div>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "#8da3b5" }}>ACTIVE GEAR LOANS</span>
+            <span style={{ fontSize: "11px", fontWeight: "500", color: "#8da3b5" }}>ACTIVE GEAR LOANS</span>
             <h2 style={{ margin: "4px 0 0 0", fontSize: "24px", color: "#4ade80" }}>{approvedRequests.length}</h2>
           </div>
           <div style={{ padding: "10px", borderRadius: "8px", backgroundColor: "rgba(34, 197, 94, 0.1)", color: "#22c55e" }}>
@@ -447,7 +453,7 @@ const Requests = () => {
           }}
         >
           <div>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "#8da3b5" }}>RETURNED ITEMS</span>
+            <span style={{ fontSize: "11px", fontWeight: "500", color: "#8da3b5" }}>RETURNED ITEMS</span>
             <h2 style={{ margin: "4px 0 0 0", fontSize: "24px", color: "#38bdf8" }}>{returnedRequests.length}</h2>
           </div>
           <div style={{ padding: "10px", borderRadius: "8px", backgroundColor: "rgba(56, 189, 248, 0.1)", color: "#38bdf8" }}>
@@ -674,7 +680,7 @@ const Requests = () => {
                         <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>REQUESTER</th>
                         <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>QTY</th>
                         <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>REQUEST / DUE DATE</th>
-                        <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>STATUS</th>
+                        <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>STATUS / RETURN DETAILS</th>
                         <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a", textAlign: "right" }}>ACTIONS</th>
                       </tr>
                     </thead>
@@ -684,6 +690,7 @@ const Requests = () => {
                         const equip = req.equipmentId || {};
                         const student = req.studentId;
                         const coach = req.coachId;
+                        const returnedCoach = req.returnedByCoach;
                         const isStudent = !!student;
                         const isOverdue = req.dueDate && req.status === "approved" && new Date(req.dueDate) < new Date();
 
@@ -806,9 +813,17 @@ const Requests = () => {
                               </div>
                             </td>
 
-                            {/* Status */}
+                            {/* Status & Return info */}
                             <td style={{ padding: "14px 16px" }}>
-                              {getStatusBadge(req.status)}
+                              <div>
+                                {getStatusBadge(req)}
+                                {req.status === "returned" && (
+                                  <div style={{ fontSize: "11px", color: "#8da3b5", marginTop: "4px" }}>
+                                    Returned by: <span style={{ color: "#38bdf8" }}>{returnedCoach?.name || coach?.name || "Coach"}</span>
+                                    {req.returnDate && ` on ${new Date(req.returnDate).toLocaleDateString()}`}
+                                  </div>
+                                )}
+                              </div>
                             </td>
 
                             {/* Actions */}
@@ -861,34 +876,10 @@ const Requests = () => {
                                   </>
                                 )}
 
-                                {/* Approved Action: Mark Returned */}
-                                {req.status === "approved" && (
-                                  <button
-                                    onClick={() => handleUpdateStatus(req._id || req.requestId, "returned")}
-                                    title="Mark Gear as Returned to Inventory"
-                                    style={{
-                                      padding: "6px 10px",
-                                      backgroundColor: "rgba(5, 199, 238, 0.15)",
-                                      border: "1px solid rgba(5, 199, 238, 0.3)",
-                                      borderRadius: "4px",
-                                      color: "#05c7ee",
-                                      fontSize: "11px",
-                                      fontWeight: "600",
-                                      cursor: "pointer",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: "4px"
-                                    }}
-                                  >
-                                    <RotateCcw size={13} />
-                                    Mark Returned
-                                  </button>
-                                )}
-
                                 {/* View Details */}
                                 <button
                                   onClick={() => setSelectedDetailRequest(req)}
-                                  title="View Full Request Details"
+                                  title="View Full Request Details & Return Breakdown"
                                   style={{
                                     padding: "6px 8px",
                                     backgroundColor: "rgba(56, 189, 248, 0.1)",
@@ -1389,34 +1380,47 @@ const Requests = () => {
         </Modal>
       )}
 
-      {/* MODAL 2: VIEW REQUEST DETAILS */}
+      {/* MODAL 2: VIEW REQUEST DETAILS & RETURN BREAKDOWN */}
       {selectedDetailRequest && (
         <Modal
           title={`Request Details: ${selectedDetailRequest.requestId}`}
           onClose={() => setSelectedDetailRequest(null)}
-          maxWidth="520px"
+          maxWidth="540px"
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px", borderBottom: "1px solid #21262d" }}>
-              <span style={{ fontSize: "14px", fontWeight: "700", color: "#f0f6fc" }}>Status</span>
-              {getStatusBadge(selectedDetailRequest.status)}
+              <span style={{ fontSize: "14px", fontWeight: "700", color: "#f0f6fc" }}>Current Status</span>
+              {getStatusBadge(selectedDetailRequest)}
             </div>
 
             <table className="admin-table">
               <tbody>
                 <tr>
-                  <th style={{ width: "150px" }}>REQUEST ID</th>
-                  <td>{selectedDetailRequest.requestId}</td>
+                  <th style={{ width: "160px" }}>REQUEST ID</th>
+                  <td>
+                    <span
+                      style={{
+                        padding: "2px 6px",
+                        backgroundColor: "rgba(56, 189, 248, 0.1)",
+                        borderRadius: "4px",
+                        color: "#38bdf8",
+                        fontFamily: "monospace",
+                        fontWeight: "700"
+                      }}
+                    >
+                      {selectedDetailRequest.requestId}
+                    </span>
+                  </td>
                 </tr>
                 <tr>
                   <th>EQUIPMENT</th>
                   <td>
-                    <strong>{selectedDetailRequest.equipmentId?.name || "Equipment"}</strong> (
+                    <strong style={{ color: "#f0f6fc" }}>{selectedDetailRequest.equipmentId?.name || "Equipment"}</strong> (
                     {selectedDetailRequest.equipmentId?.sport || "General Athletics"})
                   </td>
                 </tr>
                 <tr>
-                  <th>QUANTITY</th>
+                  <th>TOTAL UNITS</th>
                   <td>
                     <strong style={{ color: "#05c7ee" }}>{selectedDetailRequest.quantity} Units</strong>
                   </td>
@@ -1426,7 +1430,7 @@ const Requests = () => {
                   <td>
                     {selectedDetailRequest.studentId ? (
                       <div>
-                        <strong>{selectedDetailRequest.studentId.name}</strong> (Student)
+                        <strong style={{ color: "#f0f6fc" }}>{selectedDetailRequest.studentId.name}</strong> (Student)
                         <div style={{ fontSize: "11px", color: "#8da3b5" }}>
                           ID: {selectedDetailRequest.studentId.studentId || selectedDetailRequest.studentId.registerNumber} •{" "}
                           {selectedDetailRequest.studentId.email}
@@ -1434,7 +1438,7 @@ const Requests = () => {
                       </div>
                     ) : selectedDetailRequest.coachId ? (
                       <div>
-                        <strong>{selectedDetailRequest.coachId.name}</strong> (Coach)
+                        <strong style={{ color: "#f0f6fc" }}>{selectedDetailRequest.coachId.name}</strong> (Coach)
                         <div style={{ fontSize: "11px", color: "#8da3b5" }}>
                           ID: {selectedDetailRequest.coachId.userId} • {selectedDetailRequest.coachId.sport}
                         </div>
@@ -1460,8 +1464,60 @@ const Requests = () => {
                       : "Not specified"}
                   </td>
                 </tr>
+
+                {/* Return Details Section if Returned */}
+                {selectedDetailRequest.status === "returned" && (
+                  <>
+                    <tr style={{ backgroundColor: "rgba(5, 199, 238, 0.05)" }}>
+                      <th style={{ color: "#05c7ee" }}>RETURN CONDITION</th>
+                      <td>
+                        <strong style={{ color: selectedDetailRequest.returnCondition === "damaged" ? "#f87171" : "#4ade80" }}>
+                          {selectedDetailRequest.returnCondition === "damaged"
+                            ? "⚠️ Damaged while playing"
+                            : "✅ Normal Condition (Good)"}
+                        </strong>
+                      </td>
+                    </tr>
+                    <tr style={{ backgroundColor: "rgba(5, 199, 238, 0.05)" }}>
+                      <th style={{ color: "#05c7ee" }}>STOCK BREAKDOWN</th>
+                      <td>
+                        <div style={{ fontSize: "12px" }}>
+                          <span style={{ color: "#4ade80", fontWeight: "700" }}>
+                            +{selectedDetailRequest.goodQuantityReturned ?? (selectedDetailRequest.returnCondition === "good" ? selectedDetailRequest.quantity : 0)} Available Stock
+                          </span>
+                          {" • "}
+                          <span style={{ color: "#f87171", fontWeight: "700" }}>
+                            +{selectedDetailRequest.damagedQuantityReturned || 0} Damaged Stock
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr style={{ backgroundColor: "rgba(5, 199, 238, 0.05)" }}>
+                      <th style={{ color: "#05c7ee" }}>RETURNED BY COACH</th>
+                      <td>
+                        <strong style={{ color: "#f0f6fc" }}>
+                          {selectedDetailRequest.returnedByCoach?.name || selectedDetailRequest.coachId?.name || "Respective Coach"}
+                        </strong>
+                        {selectedDetailRequest.returnDate && (
+                          <div style={{ fontSize: "11px", color: "#8da3b5" }}>
+                            on {new Date(selectedDetailRequest.returnDate).toLocaleString()}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                    <tr style={{ backgroundColor: "rgba(5, 199, 238, 0.05)" }}>
+                      <th style={{ color: "#05c7ee" }}>RETURN NOTES</th>
+                      <td>
+                        <span style={{ color: "#f0f6fc" }}>
+                          {selectedDetailRequest.returnRemarks || "Equipment returned by coach and stock updated automatically."}
+                        </span>
+                      </td>
+                    </tr>
+                  </>
+                )}
+
                 <tr>
-                  <th>REMARKS</th>
+                  <th>INITIAL REMARKS</th>
                   <td>{selectedDetailRequest.remarks || "No remarks provided."}</td>
                 </tr>
               </tbody>
@@ -1502,24 +1558,6 @@ const Requests = () => {
                     Reject Request
                   </button>
                 </>
-              )}
-
-              {selectedDetailRequest.status === "approved" && (
-                <button
-                  onClick={() => handleUpdateStatus(selectedDetailRequest._id, "returned")}
-                  style={{
-                    padding: "8px 16px",
-                    backgroundColor: "#05c7ee",
-                    border: "none",
-                    borderRadius: "6px",
-                    color: "#07131a",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    cursor: "pointer"
-                  }}
-                >
-                  Mark as Returned to Stock
-                </button>
               )}
 
               <button

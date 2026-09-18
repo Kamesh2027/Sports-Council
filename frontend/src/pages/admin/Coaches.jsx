@@ -113,6 +113,7 @@ const Coaches = () => {
             backgroundColor: "#05c7ee",
             color: "#07131a",
             fontWeight: "700",
+            fontSize: "12px",
             padding: "10px 18px",
             borderRadius: "6px",
             border: "none",
@@ -166,7 +167,7 @@ const Coaches = () => {
           }}
         >
           <div>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "#8da3b5" }}>TOTAL COACHES</span>
+            <span style={{ fontSize: "11px", fontWeight: "500", color: "#8da3b5" }}>TOTAL COACHES</span>
             <h2 style={{ margin: "4px 0 0 0", fontSize: "24px", color: "#f0f6fc" }}>{coaches.length}</h2>
           </div>
           <div style={{ padding: "10px", borderRadius: "8px", backgroundColor: "rgba(5, 199, 238, 0.1)", color: "#05c7ee" }}>
@@ -186,7 +187,7 @@ const Coaches = () => {
           }}
         >
           <div>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "#8da3b5" }}>SPORTS DISCIPLINES</span>
+            <span style={{ fontSize: "11px", fontWeight: "500", color: "#8da3b5" }}>SPORTS DISCIPLINES</span>
             <h2 style={{ margin: "4px 0 0 0", fontSize: "24px", color: "#f0f6fc" }}>{sportsList.length || 1}</h2>
           </div>
           <div style={{ padding: "10px", borderRadius: "8px", backgroundColor: "rgba(168, 85, 247, 0.1)", color: "#a855f7" }}>
@@ -206,7 +207,7 @@ const Coaches = () => {
           }}
         >
           <div>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: "#8da3b5" }}>ASSIGNED PLAYERS</span>
+            <span style={{ fontSize: "11px", fontWeight: "500", color: "#8da3b5" }}>ASSIGNED PLAYERS</span>
             <h2 style={{ margin: "4px 0 0 0", fontSize: "24px", color: "#f0f6fc" }}>
               {coaches.reduce((acc, c) => acc + (c.studentCount || 0), 0)}
             </h2>
@@ -355,14 +356,14 @@ const Coaches = () => {
               <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#14181e", textAlign: "left" }}>
-                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>COACH</th>
-                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>COACH ID</th>
-                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>CONTACT & EMAIL</th>
-                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>GENDER</th>
-                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>SPORT</th>
-                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>ASSIGNED SQUAD</th>
-                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>PLAYERS</th>
-                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a", textAlign: "right" }}>ACTIONS</th>
+                    <th style={{ textAlign: "center", padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>COACH</th>
+                    <th style={{ textAlign: "center", padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>COACH ID</th>
+                    <th style={{ textAlign: "center", padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>CONTACT & EMAIL</th>
+                    <th style={{ textAlign: "center", padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>GENDER</th>
+                    <th style={{ textAlign: "center", padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>SPORT</th>
+                    <th style={{ textAlign: "center", padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>ASSIGNED SQUAD</th>
+                    <th style={{ textAlign: "center", padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>PLAYERS</th>
+                    <th style={{ textAlign: "center", padding: "12px 16px", fontSize: "11px", color: "#8da3b5", borderBottom: "1px solid #2b323a" }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -407,7 +408,7 @@ const Coaches = () => {
                       </td>
 
                       {/* Coach ID */}
-                      <td style={{ padding: "14px 16px" }}>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
                         <span
                           style={{
                             padding: "4px 8px",
@@ -425,7 +426,7 @@ const Coaches = () => {
                       </td>
 
                       {/* Contact & Email */}
-                      <td style={{ padding: "14px 16px" }}>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                           <span style={{ color: "#c9d1d9", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
                             <Mail size={12} color="#8da3b5" />
@@ -441,7 +442,7 @@ const Coaches = () => {
                       </td>
 
                       {/* Gender */}
-                      <td style={{ padding: "14px 16px" }}>
+                      <td style={{ padding: "14px 16px" , textAlign: "center" }}>
                         <span
                           style={{
                             padding: "3px 8px",
@@ -460,7 +461,7 @@ const Coaches = () => {
                       </td>
 
                       {/* Sport */}
-                      <td style={{ padding: "14px 16px" }}>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
                         <span
                           style={{
                             padding: "4px 10px",
@@ -477,12 +478,12 @@ const Coaches = () => {
                       </td>
 
                       {/* Assigned Squad */}
-                      <td style={{ padding: "14px 16px", color: "#c9d1d9", fontSize: "12px" }}>
+                      <td style={{ padding: "14px 16px", color: "#c9d1d9", fontSize: "12px" , textAlign: "center" }}>
                         {coach.teamName || `${coach.sport} Team`}
                       </td>
 
                       {/* Players Count */}
-                      <td style={{ padding: "14px 16px" }}>
+                      <td style={{ padding: "14px 16px" , textAlign: "center" }}>
                         <span
                           style={{
                             padding: "3px 8px",
@@ -498,7 +499,7 @@ const Coaches = () => {
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
                         <button
                           onClick={() => handleDeleteCoach(coach)}
                           title="Remove Coach"

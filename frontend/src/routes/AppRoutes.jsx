@@ -33,8 +33,15 @@ import CoachRequests from "../pages/coach/Requests";
 import CoachTournaments from "../pages/coach/Tournaments";
 import CoachSchedules from "../pages/coach/Schedules";
 
-// Student Pages
+// Student Layout & Pages
+import StudentLayout from "../layouts/StudentLayout";
 import StudentDashboard from "../pages/student/StudentDashboard";
+import StudentTeam from "../pages/student/Team";
+import StudentEquipment from "../pages/student/Equipment";
+import StudentRequests from "../pages/student/Requests";
+import StudentTournaments from "../pages/student/Tournaments";
+import StudentSchedules from "../pages/student/Schedules";
+import StudentProfile from "../pages/student/Profile";
 
 function AppRoutes() {
     return (
@@ -79,12 +86,18 @@ function AppRoutes() {
                 </Route>
 
                 {/* STUDENT */}
-                <Route path="/student">
+                <Route path="/student" element={<StudentLayout />}>
                     <Route
                         index
-                        element={<Navigate to="/student/dashboard" replace />}
+                        element={<Navigate to="/student/profile" replace />}
                     />
-                    <Route path="dashboard" element={<StudentDashboard />} />
+                    <Route path="profile" element={<StudentProfile />} />
+                    <Route path="team" element={<StudentTeam />} />
+                    <Route path="equipment" element={<StudentEquipment />} />
+                    <Route path="requests" element={<StudentRequests />} />
+                    <Route path="tournaments" element={<StudentTournaments />} />
+                    <Route path="schedules" element={<StudentSchedules />} />
+                    <Route path="profile" element={<StudentProfile />} />
                 </Route>
 
                 {/* DEFAULT & FALLBACK */}

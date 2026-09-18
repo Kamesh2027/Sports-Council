@@ -36,9 +36,9 @@ const createCoach = async () => {
         // USER ID
         // =====================================================
 
-        const userId = "COACH001";
+        const userId = "COACH010";
 
-        const email = "coach@sports.com";
+        const email = "coach2@sports.com";
 
 
         // =====================================================

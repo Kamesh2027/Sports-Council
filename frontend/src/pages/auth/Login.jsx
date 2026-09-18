@@ -163,7 +163,7 @@ const Login = () => {
       } else if (user.role === "coach") {
         navigate("/coach/dashboard");
       } else if (user.role === "student") {
-        navigate("/student/dashboard");
+        navigate("/student/profile");
       }
     } catch (error) {
       setError(error.response?.data?.message || "Login failed");

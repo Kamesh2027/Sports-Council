@@ -28,6 +28,16 @@ const tournamentSchema = new mongoose.Schema(
             required: true
         },
 
+        venue: {
+            type: String,
+            default: "Main Sports Complex"
+        },
+
+        location: {
+            type: String,
+            default: "BIT Campus"
+        },
+
         status: {
             type: String,
             enum: [
@@ -42,6 +52,35 @@ const tournamentSchema = new mongoose.Schema(
         description: {
             type: String,
             default: ""
+        },
+
+        organizer: {
+            type: String,
+            default: "BIT Sports Council"
+        },
+
+        prizePool: {
+            type: String,
+            default: ""
+        },
+
+        maxTeams: {
+            type: Number,
+            default: 16
+        },
+
+        registeredTeamsCount: {
+            type: Number,
+            default: 0
+        },
+
+        registrationDeadline: {
+            type: Date
+        },
+
+        eligibility: {
+            type: String,
+            default: "Open to all enrolled students"
         }
     },
     {

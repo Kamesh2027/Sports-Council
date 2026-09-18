@@ -17,7 +17,20 @@ const {
     getAllRequests,
     updateRequestStatus,
     createAdminRequest,
-    deleteRequest
+    deleteRequest,
+    getAllTournaments,
+    createTournament,
+    updateTournament,
+    deleteTournament,
+    getAllSchedules,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
+    checkScheduleAvailability,
+    getAllVenues,
+    createVenue,
+    updateVenue,
+    deleteVenue
 } = require("../controllers/adminController");
 
 // Admin routes
@@ -47,5 +60,24 @@ router.get("/requests", getAllRequests);
 router.post("/requests", createAdminRequest);
 router.put("/requests/:id/status", updateRequestStatus);
 router.delete("/requests/:id", deleteRequest);
+
+// Tournament Management
+router.get("/tournaments", getAllTournaments);
+router.post("/tournaments", createTournament);
+router.put("/tournaments/:id", updateTournament);
+router.delete("/tournaments/:id", deleteTournament);
+
+// Schedule Management & Conflict Checking
+router.get("/schedules", getAllSchedules);
+router.get("/schedules/check-availability", checkScheduleAvailability);
+router.post("/schedules", createSchedule);
+router.put("/schedules/:id", updateSchedule);
+router.delete("/schedules/:id", deleteSchedule);
+
+// Venue Management
+router.get("/venues", getAllVenues);
+router.post("/venues", createVenue);
+router.put("/venues/:id", updateVenue);
+router.delete("/venues/:id", deleteVenue);
 
 module.exports = router;

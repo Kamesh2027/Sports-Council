@@ -86,16 +86,13 @@ const Sidebar = () => {
 
             {/* BRAND */}
             <div className="brand-section">
-
                 <div className="brand-logo">
                     <img src={logo} alt="BIT Sports Council Logo" className="logo-img" />
                 </div>
-
                 <div>
-                    <h2>BIT Sports Council</h2>
-                    {/* <span>ADMIN</span> */}
+                    <h2>BIT SPORTS COUNCIL</h2>
+                    {/* <span>ADMIN PORTAL</span> */}
                 </div>
-
             </div>
 
 
@@ -128,7 +125,7 @@ const Sidebar = () => {
                             <Icon size={18} />
 
                             <span>
-                                {item.name.toUpperCase()}
+                                {item.name}
                             </span>
 
                         </NavLink>
@@ -143,7 +140,7 @@ const Sidebar = () => {
 
                 {/* <button className="nav-item support">
                     <CircleHelp size={18} />
-                    <span>SUPPORT</span>
+                    <span>Support</span>
                 </button> */}
 
                 <button
@@ -151,7 +148,7 @@ const Sidebar = () => {
                     onClick={handleLogout}
                 >
                     <LogOut size={18} />
-                    <span>SIGN OUT</span>
+                    <span>Sign Out</span>
                 </button>
 
             </div>

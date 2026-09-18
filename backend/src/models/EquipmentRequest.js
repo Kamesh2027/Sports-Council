@@ -55,6 +55,41 @@ const equipmentRequestSchema = new mongoose.Schema(
         remarks: {
             type: String,
             default: ""
+        },
+
+        // Coach Return Tracking Fields
+        returnCondition: {
+            type: String,
+            enum: ["good", "damaged", "partial_damaged"],
+            default: "good"
+        },
+
+        damagedQuantityReturned: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+
+        goodQuantityReturned: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+
+        returnedByCoach: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Coach",
+            default: null
+        },
+
+        returnDate: {
+            type: Date,
+            default: null
+        },
+
+        returnRemarks: {
+            type: String,
+            default: ""
         }
     },
     {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../../styles/register.css";
@@ -39,10 +39,13 @@ const StudentRegister = () => {
 
     // Email OTP states
     const [emailOtp, setEmailOtp] = useState("");
+    const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+    const otpInputRefs = useRef([]);
     const [emailOtpSent, setEmailOtpSent] = useState(false);
     const [emailVerified, setEmailVerified] = useState(false);
     const [emailOtpLoading, setEmailOtpLoading] = useState(false);
     const [emailTimer, setEmailTimer] = useState(0);
+    const [receivedDevOtp, setReceivedDevOtp] = useState("");
 
     // Notification / Coach / UI states
     const [statusMessage, setStatusMessage] = useState("");
@@ -53,6 +56,31 @@ const StudentRegister = () => {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [registeredStudent, setRegisteredStudent] = useState(null);
+
+    // Custom dropdown states & refs
+    const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
+    const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+    const [coachDropdownOpen, setCoachDropdownOpen] = useState(false);
+    const deptRef = useRef(null);
+    const yearRef = useRef(null);
+    const coachRef = useRef(null);
+
+    // Close dropdowns on outside click
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (deptRef.current && !deptRef.current.contains(event.target)) {
+                setDeptDropdownOpen(false);
+            }
+            if (yearRef.current && !yearRef.current.contains(event.target)) {
+                setYearDropdownOpen(false);
+            }
+            if (coachRef.current && !coachRef.current.contains(event.target)) {
+                setCoachDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const apiHost = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "localhost";
     const API_BASE = `http://${apiHost}:5000/api`;
@@ -86,10 +114,79 @@ const StudentRegister = () => {
         return () => clearInterval(interval);
     }, [emailTimer]);
 
+    // Keep emailOtp string in sync with 6 digits
+    useEffect(() => {
+        setEmailOtp(otpDigits.join(""));
+    }, [otpDigits]);
+
+    // Handle 6-box OTP digit input
+    const handleOtpDigitChange = (index, value) => {
+        const cleanVal = value.replace(/\D/g, "");
+
+        if (!cleanVal) {
+            const newDigits = [...otpDigits];
+            newDigits[index] = "";
+            setOtpDigits(newDigits);
+            return;
+        }
+
+        if (cleanVal.length > 1) {
+            // Paged/Multi-char fill
+            const pasted = cleanVal.slice(0, 6).split("");
+            const newDigits = [...otpDigits];
+            for (let i = 0; i < 6; i++) {
+                newDigits[i] = pasted[i] || "";
+            }
+            setOtpDigits(newDigits);
+            const nextFocus = Math.min(pasted.length, 5);
+            otpInputRefs.current[nextFocus]?.focus();
+            return;
+        }
+
+        const newDigits = [...otpDigits];
+        newDigits[index] = cleanVal;
+        setOtpDigits(newDigits);
+
+        // Auto-advance to next square box
+        if (index < 5 && cleanVal) {
+            otpInputRefs.current[index + 1]?.focus();
+        }
+    };
+
+    // Handle backspace navigation between boxes
+    const handleOtpKeyDown = (index, e) => {
+        if (e.key === "Backspace") {
+            if (!otpDigits[index] && index > 0) {
+                otpInputRefs.current[index - 1]?.focus();
+            }
+        } else if (e.key === "ArrowLeft" && index > 0) {
+            otpInputRefs.current[index - 1]?.focus();
+        } else if (e.key === "ArrowRight" && index < 5) {
+            otpInputRefs.current[index + 1]?.focus();
+        }
+    };
+
+    // Handle paste across 6 boxes
+    const handleOtpPaste = (e) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+        if (pastedData) {
+            const newDigits = ["", "", "", "", "", ""];
+            for (let i = 0; i < pastedData.length; i++) {
+                newDigits[i] = pastedData[i];
+            }
+            setOtpDigits(newDigits);
+            const focusIndex = Math.min(pastedData.length, 5);
+            otpInputRefs.current[focusIndex]?.focus();
+        }
+    };
+
     // Send Email OTP handler
     const handleSendEmailOtp = async () => {
         setError("");
         setStatusMessage("");
+        setReceivedDevOtp("");
+        setOtpDigits(["", "", "", "", "", ""]);
 
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
             setError("Please enter a valid email address first.");
@@ -104,7 +201,13 @@ const StudentRegister = () => {
 
             setEmailOtpSent(true);
             setEmailTimer(60);
-            setStatusMessage(res.data.message || `Verification code sent to ${email.trim()}`);
+            if (res.data.devOtp) {
+                setReceivedDevOtp(res.data.devOtp);
+            }
+            setStatusMessage(res.data.message || `Verification code sent to ${email.trim()}. Please check Inbox & Spam folders.`);
+            setTimeout(() => {
+                otpInputRefs.current[0]?.focus();
+            }, 150);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to send email verification OTP.");
         } finally {
@@ -117,20 +220,22 @@ const StudentRegister = () => {
         setError("");
         setStatusMessage("");
 
-        if (!emailOtp || emailOtp.trim().length !== 6) {
-            setError("Please enter the 6-digit verification code sent to your email.");
+        const codeToVerify = otpDigits.join("").trim();
+        if (codeToVerify.length !== 6) {
+            setError("Please enter all 6 digits of the verification code.");
             return;
         }
 
         setEmailOtpLoading(true);
         try {
-            await axios.post(`${API_BASE}/auth/verify-email-otp`, {
+            const res = await axios.post(`${API_BASE}/auth/verify-email-otp`, {
                 email: email.trim().toLowerCase(),
-                otp: emailOtp.trim()
+                otp: codeToVerify
             });
 
             setEmailVerified(true);
-            setStatusMessage("Email verified successfully! ✓");
+            setStatusMessage(res.data.message || "Email address verified successfully! ✓");
+            setError("");
         } catch (err) {
             setError(err.response?.data?.message || "Invalid or expired email verification code.");
         } finally {
@@ -347,7 +452,6 @@ const StudentRegister = () => {
                         <div className="field">
                             <label htmlFor="fullName">Full Name *</label>
                             <div className="field-input">
-                                <span className="field-icon">👤</span>
                                 <input
                                     id="fullName"
                                     type="text"
@@ -363,7 +467,6 @@ const StudentRegister = () => {
                         <div className="field">
                             <label htmlFor="rollNumber">Roll / Register Number *</label>
                             <div className="field-input">
-                                <span className="field-icon">🆔</span>
                                 <input
                                     id="rollNumber"
                                     type="text"
@@ -381,8 +484,7 @@ const StudentRegister = () => {
                                 Institutional Email (with OTP Verification) *
                             </label>
                             <div style={{ display: "flex", gap: "8px" }}>
-                                <div className="field-input" style={{ flex: 1 }}>
-                                    <span className="field-icon">✉️</span>
+                                <div className="field-input" style={{ flex: 1, marginBottom: "7px" }}>
                                     <input
                                         id="email"
                                         type="email"
@@ -410,6 +512,8 @@ const StudentRegister = () => {
                                             borderRadius: "6px",
                                             fontWeight: 700,
                                             fontSize: "12px",
+                                            height: "36px",
+                                            alignSelf: "center",
                                             cursor: email.includes("@") ? "pointer" : "not-allowed",
                                             whiteSpace: "nowrap"
                                         }}
@@ -417,10 +521,10 @@ const StudentRegister = () => {
                                         {emailOtpLoading
                                             ? "Sending..."
                                             : emailTimer > 0
-                                            ? `Resend (${emailTimer}s)`
-                                            : emailOtpSent
-                                            ? "Resend Code"
-                                            : "Send Code"}
+                                                ? `Resend (${emailTimer}s)`
+                                                : emailOtpSent
+                                                    ? "Resend Code"
+                                                    : "Send Code"}
                                     </button>
                                 )}
 
@@ -451,44 +555,84 @@ const StudentRegister = () => {
                                 style={{
                                     background: "rgba(5, 199, 238, 0.08)",
                                     border: "1px solid #05c7ee",
-                                    padding: "14px",
+                                    padding: "16px",
                                     borderRadius: "8px"
                                 }}
                             >
-                                <label htmlFor="emailOtpCode" style={{ color: "#05c7ee", display: "block", marginBottom: "6px" }}>
-                                    Enter 6-Digit Email Verification Code *
+                                <label style={{ color: "#05c7ee", display: "block", marginBottom: "10px", fontWeight: "700" }}>
+                                    Enter 6-Digit Verification Code *
                                 </label>
-                                <div style={{ display: "flex", gap: "8px" }}>
-                                    <div className="field-input" style={{ flex: 1 }}>
-                                        <span className="field-icon">🔑</span>
-                                        <input
-                                            id="emailOtpCode"
-                                            type="text"
-                                            maxLength="6"
-                                            placeholder="Enter 6-digit code from email"
-                                            value={emailOtp}
-                                            onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                                            style={{ letterSpacing: "4px", fontWeight: 700 }}
-                                        />
+
+                                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                                    {/* 6 SQUARE OTP BOXES */}
+                                    <div
+                                        style={{ display: "flex", gap: "8px", alignItems: "center" }}
+                                        onPaste={handleOtpPaste}
+                                    >
+                                        {otpDigits.map((digit, idx) => (
+                                            <input
+                                                key={idx}
+                                                ref={(el) => (otpInputRefs.current[idx] = el)}
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                maxLength={1}
+                                                value={digit}
+                                                onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
+                                                onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                                                style={{
+                                                    width: "42px",
+                                                    height: "46px",
+                                                    textAlign: "center",
+                                                    fontSize: "18px",
+                                                    fontWeight: "700",
+                                                    background: "#171c22",
+                                                    color: "#ffffff",
+                                                    border: digit ? "1.5px solid #05c7ee" : "1px solid #3c494e",
+                                                    borderRadius: "8px",
+                                                    outline: "none",
+                                                    boxShadow: digit ? "0 0 8px rgba(5, 199, 238, 0.3)" : "none",
+                                                    padding: 0,
+                                                    transition: "all 0.15s ease"
+                                                }}
+                                                onFocus={(e) => {
+                                                    e.target.style.borderColor = "#05c7ee";
+                                                    e.target.style.boxShadow = "0 0 10px rgba(5, 199, 238, 0.35)";
+                                                }}
+                                                onBlur={(e) => {
+                                                    e.target.style.borderColor = digit ? "#05c7ee" : "#3c494e";
+                                                    e.target.style.boxShadow = digit ? "0 0 8px rgba(5, 199, 238, 0.3)" : "none";
+                                                }}
+                                            />
+                                        ))}
                                     </div>
+
+                                    {/* VERIFY BUTTON */}
                                     <button
                                         type="button"
                                         onClick={handleVerifyEmailOtp}
-                                        disabled={emailOtpLoading || emailOtp.length !== 6}
+                                        disabled={emailOtpLoading || otpDigits.join("").length !== 6}
                                         style={{
                                             padding: "0 16px",
-                                            background: emailOtp.length === 6 ? "#35d49b" : "#2b323a",
-                                            color: emailOtp.length === 6 ? "#07131a" : "#76838e",
+                                            height: "46px",
+                                            background: otpDigits.join("").length === 6 ? "#35d49b" : "#2b323a",
+                                            color: otpDigits.join("").length === 6 ? "#07131a" : "#76838e",
                                             border: "none",
-                                            borderRadius: "6px",
-                                            fontWeight: 800,
+                                            borderRadius: "8px",
+                                            fontWeight: 700,
                                             fontSize: "12px",
-                                            cursor: emailOtp.length === 6 ? "pointer" : "not-allowed"
+                                            cursor: otpDigits.join("").length === 6 ? "pointer" : "not-allowed",
+                                            whiteSpace: "nowrap",
+                                            transition: "all 0.2s ease"
                                         }}
                                     >
                                         {emailOtpLoading ? "Verifying..." : "Verify Email ✓"}
                                     </button>
                                 </div>
+
+                                <p style={{ margin: "10px 0 0", fontSize: "11px", color: "#8da3b5", lineHeight: "1.4" }}>
+                                    An email was sent from <code>sportscouncil2027@gmail.com</code>. Please check your <strong>Inbox</strong> and <strong>Spam / Junk</strong> folders.
+                                </p>
                             </div>
                         )}
 
@@ -496,7 +640,6 @@ const StudentRegister = () => {
                         <div className="field">
                             <label htmlFor="mobile">Mobile Number *</label>
                             <div className="field-input">
-                                <span className="field-icon">📱</span>
                                 <input
                                     id="mobile"
                                     type="tel"
@@ -530,7 +673,6 @@ const StudentRegister = () => {
 
                             {customCoach ? (
                                 <div className="field-input">
-                                    <span className="field-icon">📋</span>
                                     <input
                                         id="coachSelect"
                                         type="text"
@@ -541,168 +683,356 @@ const StudentRegister = () => {
                                     />
                                 </div>
                             ) : (
-                                <div className="field-input" style={{ position: "relative" }}>
-                                    <span className="field-icon">🏅</span>
-                                    <select
+                                <div className="field-input" ref={coachRef} style={{ position: "relative" }}>
+                                    <button
                                         id="coachSelect"
-                                        value={coachUserId}
-                                        onChange={(e) => setCoachUserId(e.target.value)}
+                                        type="button"
+                                        onClick={() => {
+                                            setCoachDropdownOpen(!coachDropdownOpen);
+                                            setDeptDropdownOpen(false);
+                                            setYearDropdownOpen(false);
+                                        }}
                                         style={{
                                             width: "100%",
+                                            height: "46px",
                                             background: "#171c22",
-                                            border: "1px solid #3c494e",
+                                            border: coachDropdownOpen ? "1px solid #05c7ee" : "1px solid #3c494e",
                                             borderRadius: "6px",
-                                            padding: "12px 36px 12px 40px",
+                                            padding: "0 34px 0 12px",
                                             color: "#ffffff",
                                             fontSize: "14px",
                                             fontWeight: 600,
                                             outline: "none",
                                             cursor: "pointer",
-                                            display: "block"
-                                        }}
-                                        required
-                                    >
-                                        {coaches.map((c) => (
-                                            <option
-                                                key={c.userId || c._id}
-                                                value={c.userId}
-                                                style={{ background: "#171c22", color: "#ffffff", padding: "10px", fontSize: "14px" }}
-                                            >
-                                                {c.name} ({c.sport || "Athletics"}) — Team: {c.teamName || `${c.sport || "General"} Team`} [ID: {c.userId}]
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div
-                                        style={{
-                                            position: "absolute",
-                                            right: "14px",
-                                            top: "50%",
-                                            transform: "translateY(-50%)",
-                                            pointerEvents: "none",
-                                            color: "#05c7ee",
-                                            fontSize: "12px",
-                                            fontWeight: 800
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            textAlign: "left",
+                                            boxShadow: coachDropdownOpen ? "0 0 10px rgba(5, 199, 238, 0.25)" : "none",
+                                            transition: "all 0.15s ease"
                                         }}
                                     >
-                                        ▼
-                                    </div>
-                                </div>
-                            )}
-                            {/* Selected Coach & Team Info Banner */}
-                            {!customCoach && coaches.find((c) => c.userId === coachUserId) && (
-                                <div
-                                    style={{
-                                        marginTop: "8px",
-                                        padding: "8px 12px",
-                                        background: "rgba(5, 199, 238, 0.08)",
-                                        border: "1px solid rgba(5, 199, 238, 0.25)",
-                                        borderRadius: "6px",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        fontSize: "12px"
-                                    }}
-                                >
-                                    <span style={{ color: "#8da3b5" }}>Assigned Team / Squad:</span>
-                                    <strong style={{ color: "#05c7ee", display: "flex", alignItems: "center", gap: "6px" }}>
-                                        🏆 {coaches.find((c) => c.userId === coachUserId)?.teamName || `${coaches.find((c) => c.userId === coachUserId)?.sport || "General"} Team`}
-                                    </strong>
+                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                            {(() => {
+                                                const c = coaches.find((coach) => coach.userId === coachUserId);
+                                                if (c) {
+                                                    return `${c.name} (${c.sport || "Athletics"}) — Team: ${c.teamName || `${c.sport || "General"} Team`} [ID: ${c.userId}]`;
+                                                }
+                                                return coachUserId || "Select Coach";
+                                            })()}
+                                        </span>
+                                        <span
+                                            style={{
+                                                position: "absolute",
+                                                right: "14px",
+                                                top: "50%",
+                                                transform: `translateY(-50%) ${coachDropdownOpen ? "rotate(180deg)" : "rotate(0deg)"}`,
+                                                color: "#05c7ee",
+                                                fontSize: "11px",
+                                                fontWeight: 800,
+                                                pointerEvents: "none",
+                                                transition: "transform 0.2s ease"
+                                            }}
+                                        >
+                                            ▼
+                                        </span>
+                                    </button>
+
+                                    {coachDropdownOpen && (
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                top: "calc(100% + 4px)",
+                                                left: 0,
+                                                right: 0,
+                                                background: "#171c22",
+                                                border: "1px solid #3c494e",
+                                                borderRadius: "8px",
+                                                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.75)",
+                                                maxHeight: "220px",
+                                                overflowY: "auto",
+                                                zIndex: 9999,
+                                                padding: "4px 0"
+                                            }}
+                                        >
+                                            {coaches.map((c) => {
+                                                const isSelected = c.userId === coachUserId;
+                                                return (
+                                                    <div
+                                                        key={c.userId || c._id}
+                                                        onClick={() => {
+                                                            setCoachUserId(c.userId);
+                                                            setCoachDropdownOpen(false);
+                                                        }}
+                                                        style={{
+                                                            padding: "10px 14px",
+                                                            fontSize: "13px",
+                                                            color: isSelected ? "#05c7ee" : "#e2e8f0",
+                                                            background: isSelected ? "rgba(5, 199, 238, 0.12)" : "transparent",
+                                                            fontWeight: isSelected ? 700 : 500,
+                                                            cursor: "pointer",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "space-between",
+                                                            gap: "8px",
+                                                            transition: "background 0.15s ease, color 0.15s ease"
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (!isSelected) {
+                                                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                                                e.currentTarget.style.color = "#ffffff";
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = isSelected ? "rgba(5, 199, 238, 0.12)" : "transparent";
+                                                            e.currentTarget.style.color = isSelected ? "#05c7ee" : "#e2e8f0";
+                                                        }}
+                                                    >
+                                                        <span>{c.name} ({c.sport || "Athletics"}) — Team: {c.teamName || `${c.sport || "General"} Team`} [ID: {c.userId}]</span>
+                                                        {isSelected && <span style={{ color: "#05c7ee", fontWeight: "bold" }}>✓</span>}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
 
                         {/* DEPARTMENT & YEAR */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "10px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "2.3fr 1fr", gap: "10px" }}>
                             {/* DEPARTMENT DROPDOWN */}
-                            <div className="field">
-                                <label htmlFor="dept">Department *</label>
+                            <div className="field" ref={deptRef} style={{ position: "relative" }}>
+                                <label htmlFor="dept" style={{ whiteSpace: "nowrap" }}>Department *</label>
                                 <div className="field-input" style={{ position: "relative" }}>
-                                    <span className="field-icon">🏛️</span>
-                                    <select
+                                    <button
                                         id="dept"
-                                        value={department}
-                                        onChange={(e) => setDepartment(e.target.value)}
+                                        type="button"
+                                        onClick={() => {
+                                            setDeptDropdownOpen(!deptDropdownOpen);
+                                            setYearDropdownOpen(false);
+                                            setCoachDropdownOpen(false);
+                                        }}
                                         style={{
                                             width: "100%",
+                                            height: "46px",
                                             background: "#171c22",
-                                            border: "1px solid #3c494e",
+                                            border: deptDropdownOpen ? "1px solid #05c7ee" : "1px solid #3c494e",
                                             borderRadius: "6px",
-                                            padding: "12px 30px 12px 40px",
+                                            padding: "0 30px 0 12px",
                                             color: "#ffffff",
                                             fontSize: "14px",
                                             fontWeight: 600,
+                                            textAlign: "left",
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
                                             outline: "none",
-                                            cursor: "pointer"
-                                        }}
-                                        required
-                                    >
-                                        {DEPARTMENTS.map((d) => (
-                                            <option
-                                                key={d.code}
-                                                value={`${d.code} - ${d.name}`}
-                                                style={{ background: "#171c22", color: "#ffffff", padding: "10px" }}
-                                            >
-                                                {d.code} — {d.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div
-                                        style={{
-                                            position: "absolute",
-                                            right: "12px",
-                                            top: "50%",
-                                            transform: "translateY(-50%)",
-                                            pointerEvents: "none",
-                                            color: "#05c7ee",
-                                            fontSize: "11px"
+                                            boxShadow: deptDropdownOpen ? "0 0 10px rgba(5, 199, 238, 0.25)" : "none",
+                                            transition: "all 0.15s ease"
                                         }}
                                     >
-                                        ▼
-                                    </div>
+                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                            {department ? department.replace(" - ", " — ") : "Select Department"}
+                                        </span>
+                                        <span
+                                            style={{
+                                                position: "absolute",
+                                                right: "12px",
+                                                top: "50%",
+                                                transform: `translateY(-50%) ${deptDropdownOpen ? "rotate(180deg)" : "rotate(0deg)"}`,
+                                                color: "#05c7ee",
+                                                fontSize: "11px",
+                                                transition: "transform 0.2s ease",
+                                                pointerEvents: "none"
+                                            }}
+                                        >
+                                            ▼
+                                        </span>
+                                    </button>
+
+                                    {deptDropdownOpen && (
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                top: "calc(100% + 4px)",
+                                                left: 0,
+                                                right: 0,
+                                                background: "#171c22",
+                                                border: "1px solid #3c494e",
+                                                borderRadius: "8px",
+                                                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.75)",
+                                                maxHeight: "220px",
+                                                overflowY: "auto",
+                                                zIndex: 9999,
+                                                padding: "4px 0"
+                                            }}
+                                        >
+                                            {DEPARTMENTS.map((d) => {
+                                                const deptVal = `${d.code} - ${d.name}`;
+                                                const isSelected = department === deptVal;
+                                                return (
+                                                    <div
+                                                        key={d.code}
+                                                        onClick={() => {
+                                                            setDepartment(deptVal);
+                                                            setDeptDropdownOpen(false);
+                                                        }}
+                                                        style={{
+                                                            padding: "10px 14px",
+                                                            fontSize: "13px",
+                                                            color: isSelected ? "#05c7ee" : "#e2e8f0",
+                                                            background: isSelected ? "rgba(5, 199, 238, 0.12)" : "transparent",
+                                                            fontWeight: isSelected ? 700 : 500,
+                                                            cursor: "pointer",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "space-between",
+                                                            transition: "background 0.15s ease, color 0.15s ease"
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (!isSelected) {
+                                                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                                                e.currentTarget.style.color = "#ffffff";
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = isSelected ? "rgba(5, 199, 238, 0.12)" : "transparent";
+                                                            e.currentTarget.style.color = isSelected ? "#05c7ee" : "#e2e8f0";
+                                                        }}
+                                                    >
+                                                        <span>{d.code} — {d.name}</span>
+                                                        {isSelected && <span style={{ color: "#05c7ee", fontWeight: "bold" }}>✓</span>}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             {/* ACADEMIC YEAR DROPDOWN */}
-                            <div className="field">
-                                <label htmlFor="year">Academic Year *</label>
+                            <div className="field" ref={yearRef} style={{ position: "relative" }}>
+                                <label htmlFor="year" style={{ whiteSpace: "nowrap" }}>Academic Year *</label>
                                 <div className="field-input" style={{ position: "relative" }}>
-                                    <span className="field-icon">🎓</span>
-                                    <select
+                                    <button
                                         id="year"
-                                        value={year}
-                                        onChange={(e) => setYear(e.target.value)}
+                                        type="button"
+                                        onClick={() => {
+                                            setYearDropdownOpen(!yearDropdownOpen);
+                                            setDeptDropdownOpen(false);
+                                            setCoachDropdownOpen(false);
+                                        }}
                                         style={{
                                             width: "100%",
+                                            height: "46px",
                                             background: "#171c22",
-                                            border: "1px solid #3c494e",
+                                            border: yearDropdownOpen ? "1px solid #05c7ee" : "1px solid #3c494e",
                                             borderRadius: "6px",
-                                            padding: "12px 30px 12px 40px",
+                                            padding: "0 28px 0 12px",
                                             color: "#ffffff",
                                             fontSize: "14px",
                                             fontWeight: 600,
+                                            textAlign: "left",
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
                                             outline: "none",
-                                            cursor: "pointer"
-                                        }}
-                                        required
-                                    >
-                                        <option value={1} style={{ background: "#171c22", color: "#fff" }}>1st Year</option>
-                                        <option value={2} style={{ background: "#171c22", color: "#fff" }}>2nd Year</option>
-                                        <option value={3} style={{ background: "#171c22", color: "#fff" }}>3rd Year</option>
-                                        <option value={4} style={{ background: "#171c22", color: "#fff" }}>4th Year</option>
-                                    </select>
-                                    <div
-                                        style={{
-                                            position: "absolute",
-                                            right: "12px",
-                                            top: "50%",
-                                            transform: "translateY(-50%)",
-                                            pointerEvents: "none",
-                                            color: "#05c7ee",
-                                            fontSize: "11px"
+                                            whiteSpace: "nowrap",
+                                            boxShadow: yearDropdownOpen ? "0 0 10px rgba(5, 199, 238, 0.25)" : "none",
+                                            transition: "all 0.15s ease"
                                         }}
                                     >
-                                        ▼
-                                    </div>
+                                        <span style={{ whiteSpace: "nowrap" }}>
+                                            {Number(year) === 1
+                                                ? "1st Year"
+                                                : Number(year) === 2
+                                                ? "2nd Year"
+                                                : Number(year) === 3
+                                                ? "3rd Year"
+                                                : Number(year) === 4
+                                                ? "4th Year"
+                                                : `${year}th Year`}
+                                        </span>
+                                        <span
+                                            style={{
+                                                position: "absolute",
+                                                right: "12px",
+                                                top: "50%",
+                                                transform: `translateY(-50%) ${yearDropdownOpen ? "rotate(180deg)" : "rotate(0deg)"}`,
+                                                color: "#05c7ee",
+                                                fontSize: "11px",
+                                                transition: "transform 0.2s ease",
+                                                pointerEvents: "none"
+                                            }}
+                                        >
+                                            ▼
+                                        </span>
+                                    </button>
+
+                                    {yearDropdownOpen && (
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                top: "calc(100% + 4px)",
+                                                left: 0,
+                                                right: 0,
+                                                background: "#171c22",
+                                                border: "1px solid #3c494e",
+                                                borderRadius: "8px",
+                                                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.75)",
+                                                maxHeight: "220px",
+                                                overflowY: "auto",
+                                                zIndex: 9999,
+                                                padding: "4px 0"
+                                            }}
+                                        >
+                                            {[
+                                                { val: 1, label: "1st Year" },
+                                                { val: 2, label: "2nd Year" },
+                                                { val: 3, label: "3rd Year" },
+                                                { val: 4, label: "4th Year" }
+                                            ].map((y) => {
+                                                const isSelected = Number(year) === y.val;
+                                                return (
+                                                    <div
+                                                        key={y.val}
+                                                        onClick={() => {
+                                                            setYear(y.val);
+                                                            setYearDropdownOpen(false);
+                                                        }}
+                                                        style={{
+                                                            padding: "10px 14px",
+                                                            fontSize: "13px",
+                                                            color: isSelected ? "#05c7ee" : "#e2e8f0",
+                                                            background: isSelected ? "rgba(5, 199, 238, 0.12)" : "transparent",
+                                                            fontWeight: isSelected ? 700 : 500,
+                                                            cursor: "pointer",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "space-between",
+                                                            transition: "background 0.15s ease, color 0.15s ease"
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (!isSelected) {
+                                                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                                                e.currentTarget.style.color = "#ffffff";
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = isSelected ? "rgba(5, 199, 238, 0.12)" : "transparent";
+                                                            e.currentTarget.style.color = isSelected ? "#05c7ee" : "#e2e8f0";
+                                                        }}
+                                                    >
+                                                        <span>{y.label}</span>
+                                                        {isSelected && <span style={{ color: "#05c7ee", fontWeight: "bold" }}>✓</span>}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -711,7 +1041,6 @@ const StudentRegister = () => {
                         <div className="field">
                             <label htmlFor="password">Password *</label>
                             <div className="field-input">
-                                <span className="field-icon">🔒</span>
                                 <input
                                     id="password"
                                     type={showPassword ? "text" : "password"}
@@ -754,8 +1083,8 @@ const StudentRegister = () => {
                             {loading
                                 ? "Submitting Registration..."
                                 : emailVerified
-                                ? "Register as Student →"
-                                : "Verify Email OTP to Register"}
+                                    ? "Register as Student →"
+                                    : "Verify Email OTP to Register"}
                         </button>
                     </form>
 

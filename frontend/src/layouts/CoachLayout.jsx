@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import CoachSidebar from "../components/common/CoachSidebar";
+import Navbar from "../components/common/Navbar";
 
 const CoachLayout = () => {
     return (
@@ -7,6 +8,7 @@ const CoachLayout = () => {
             <CoachSidebar />
 
             <main className="admin-main">
+                <Navbar />
                 <Outlet />
             </main>
         </div>

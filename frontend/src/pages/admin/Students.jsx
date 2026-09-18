@@ -426,14 +426,14 @@ const Students = () => {
 
                                                 {/* ROLL NUMBER */}
                                                 <td>
-                                                    <span style={{ color: "#05c7ee", fontWeight: 700 }}>
+                                                    <span style={{ color: "#05c7ee", fontWeight: 500 }}>
                                                         {student.registerNumber}
                                                     </span>
                                                 </td>
 
                                                 {/* CONTACT */}
                                                 <td>
-                                                    <div style={{ fontSize: "10px" }}>
+                                                    <div style={{ fontSize: "11px" }}>
                                                         <div style={{ color: "#cbd3da", marginBottom: "2px" }}>
                                                             ✉️ {student.email}
                                                         </div>
@@ -448,13 +448,13 @@ const Students = () => {
                                                 {/* COACH & SQUAD */}
                                                 <td>
                                                     <div>
-                                                        <strong style={{ color: "#e7edf2", display: "block" }}>
+                                                        <strong style={{ fontSize: "11px", color: "#e7edf2", display: "block" }}>
                                                             {student.coachId?.name || student.coachUserId || "Unassigned"}
                                                         </strong>
-                                                        <span style={{ fontSize: "11px", color: "#35d49b", fontWeight: 700, display: "block" }}>
+                                                        <span style={{ fontSize: "11px", color: "#35d49b", fontWeight: 500, display: "block" }}>
                                                             🏆 {student.teamId?.name || student.coachId?.teamName || (student.coachId?.sport ? `${student.coachId.sport} Team` : "General Squad")}
                                                         </span>
-                                                        <span style={{ fontSize: "9px", color: "#05c7ee" }}>
+                                                        <span style={{ fontSize: "11px", color: "#05c7ee" }}>
                                                             {student.coachId?.sport ? `Sport: ${student.coachId.sport}` : (student.coachUserId ? `Coach ID: ${student.coachUserId}` : "")}
                                                         </span>
                                                     </div>

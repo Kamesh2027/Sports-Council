@@ -2,6 +2,7 @@ import {
     useEffect,
     useState
 } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
     Search,
@@ -41,6 +42,7 @@ import "../../styles/admin.css";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
+    const navigate = useNavigate();
     const { user, logout } = useAuth();
 
     const [dashboard, setDashboard] = useState(null);
@@ -164,12 +166,12 @@ const AdminDashboard = () => {
 
                         <div>
 
-                            <h1 className="page-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                            <h1 className="page-title" style={{ paddingTop: "10px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
                                 <span>Admin Dashboard</span>
                                 
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                {/* <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                     <button
-                                        className="primary-btn"
+                                        className="export-btn"
                                         onClick={() => setShowAddCoachModal(true)}
                                         style={{
                                             display: "flex",
@@ -193,7 +195,7 @@ const AdminDashboard = () => {
                                         <Download size={15} />
                                         EXPORT
                                     </button>
-                                </div>
+                                </div> */}
                             </h1>
 
                         </div>
@@ -247,21 +249,6 @@ const AdminDashboard = () => {
                                 <p style={{ margin: 0 }}>
                                     Registered coaches
                                 </p>
-                                <button
-                                    onClick={() => setShowAddCoachModal(true)}
-                                    style={{
-                                        background: "transparent",
-                                        border: "1px solid rgba(5, 199, 238, 0.4)",
-                                        color: "#05c7ee",
-                                        borderRadius: "4px",
-                                        padding: "2px 8px",
-                                        fontSize: "10px",
-                                        fontWeight: "700",
-                                        cursor: "pointer"
-                                    }}
-                                >
-                                    + Add
-                                </button>
                             </div>
 
                         </div>
@@ -488,7 +475,7 @@ const AdminDashboard = () => {
 
                             <div className="panel">
 
-                                <div className="panel-header">
+                                <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 
                                     <div className="panel-title">
 
@@ -499,6 +486,20 @@ const AdminDashboard = () => {
                                         </h3>
 
                                     </div>
+
+                                    <button
+                                        onClick={() => navigate("/admin/tournaments")}
+                                        style={{
+                                            backgroundColor: "transparent",
+                                            border: "none",
+                                            color: "#05c7ee",
+                                            fontSize: "12px",
+                                            fontWeight: "700",
+                                            cursor: "pointer"
+                                        }}
+                                    >
+                                        Manage ➜
+                                    </button>
 
                                 </div>
 
@@ -626,13 +627,6 @@ const AdminDashboard = () => {
                                     )}
 
                                 </div>
-
-
-                                <button className="manage-venues">
-
-                                    MANAGE VENUES
-
-                                </button>
 
                             </div>
 
