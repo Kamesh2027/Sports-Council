@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import CoachSidebar from "../components/common/CoachSidebar";
+import CoachSidebar from "../components/common/coachSidebar";
 import Navbar from "../components/common/Navbar";
 
 const CoachLayout = () => {

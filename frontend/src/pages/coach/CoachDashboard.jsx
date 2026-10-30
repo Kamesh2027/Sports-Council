@@ -5,7 +5,7 @@ import axios from "axios";
 import { API_BASE } from "../../services/api";
 import { RotateCcw, Package, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 
-import "./CoachDashboard.css";
+import "./coachDashboard.css";
 
 const CoachDashboard = () => {
     const navigate = useNavigate();
