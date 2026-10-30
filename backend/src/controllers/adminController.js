@@ -32,12 +32,49 @@ const getDashboard = async (req, res) => {
             Equipment.countDocuments(),
             EquipmentRequest.countDocuments({ status: "pending" }),
             Student.countDocuments({ approvalStatus: "pending" }),
-            Activity.find().sort({ createdAt: -1 }).limit(10),
+            Activity.find().sort({ createdAt: -1 }).limit(15),
             Tournament.find({
                 status: { $in: ["upcoming", "ongoing"] }
             }).sort({ startDate: 1 }).limit(5),
             Venue.find().sort({ name: 1 })
         ]);
+
+        const formattedActivities = activities.map((act) => {
+            const rawAction = act.action || act.message || act.type || "System Activity";
+            const rawUser = act.user || (act.role ? act.role.toUpperCase() : "ADMIN");
+            
+            let status = act.status || "COMPLETED";
+            const typeLower = (act.type || "").toLowerCase();
+            const actionLower = rawAction.toLowerCase();
+            if (actionLower.includes("reject") || typeLower.includes("reject")) {
+                status = "REJECTED";
+            } else if (actionLower.includes("pending") || typeLower.includes("pending")) {
+                status = "PENDING";
+            } else if (actionLower.includes("approved") || typeLower.includes("approve")) {
+                status = "APPROVED";
+            } else if (actionLower.includes("update") || typeLower.includes("update") || actionLower.includes("edit")) {
+                status = "UPDATED";
+            } else if (actionLower.includes("delete") || actionLower.includes("remove")) {
+                status = "DELETED";
+            } else if (actionLower.includes("add") || actionLower.includes("created") || actionLower.includes("registered") || actionLower.includes("assigned")) {
+                status = "CREATED";
+            }
+
+            return {
+                _id: act._id,
+                action: rawAction,
+                message: act.message || rawAction,
+                user: rawUser,
+                role: act.role || "admin",
+                status: status,
+                type: (actionLower.includes("reject") || typeLower.includes("reject") || actionLower.includes("delete"))
+                    ? "danger"
+                    : (actionLower.includes("pending") || typeLower.includes("pending"))
+                    ? "warning"
+                    : "success",
+                createdAt: act.createdAt
+            };
+        });
 
         res.status(200).json({
             success: true,
@@ -49,7 +86,7 @@ const getDashboard = async (req, res) => {
                 pendingRequests,
                 pendingStudents
             },
-            activities,
+            activities: formattedActivities,
             tournaments,
             venues
         });
@@ -2162,8 +2199,65 @@ const deleteVenue = async (req, res) => {
     }
 };
 
+// =====================================================
+// GET RECENT ACTIVITIES (REAL-TIME STREAM / POLL)
+// =====================================================
+const getRecentActivities = async (req, res) => {
+    try {
+        const activities = await Activity.find().sort({ createdAt: -1 }).limit(20);
+        const formattedActivities = activities.map((act) => {
+            const rawAction = act.action || act.message || act.type || "System Activity";
+            const rawUser = act.user || (act.role ? act.role.toUpperCase() : "ADMIN");
+            
+            let status = act.status || "COMPLETED";
+            const typeLower = (act.type || "").toLowerCase();
+            const actionLower = rawAction.toLowerCase();
+            if (actionLower.includes("reject") || typeLower.includes("reject")) {
+                status = "REJECTED";
+            } else if (actionLower.includes("pending") || typeLower.includes("pending")) {
+                status = "PENDING";
+            } else if (actionLower.includes("approved") || typeLower.includes("approve")) {
+                status = "APPROVED";
+            } else if (actionLower.includes("update") || typeLower.includes("update") || actionLower.includes("edit")) {
+                status = "UPDATED";
+            } else if (actionLower.includes("delete") || actionLower.includes("remove")) {
+                status = "DELETED";
+            } else if (actionLower.includes("add") || actionLower.includes("created") || actionLower.includes("registered") || actionLower.includes("assigned")) {
+                status = "CREATED";
+            }
+
+            return {
+                _id: act._id,
+                action: rawAction,
+                message: act.message || rawAction,
+                user: rawUser,
+                role: act.role || "admin",
+                status: status,
+                type: (actionLower.includes("reject") || typeLower.includes("reject") || actionLower.includes("delete"))
+                    ? "danger"
+                    : (actionLower.includes("pending") || typeLower.includes("pending"))
+                    ? "warning"
+                    : "success",
+                createdAt: act.createdAt
+            };
+        });
+
+        return res.status(200).json({
+            success: true,
+            activities: formattedActivities
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch activities",
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getDashboard,
+    getRecentActivities,
     addCoach,
     getAllCoaches,
     deleteCoach,

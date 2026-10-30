@@ -30,8 +30,14 @@ const updateStudentApproval = async (id, status) => {
     return response.data;
 };
 
+const getActivities = async () => {
+    const response = await api.get("/admin/activities");
+    return response.data;
+};
+
 export default {
     getDashboard,
+    getActivities,
     getCoaches,
     addCoach,
     deleteCoach,

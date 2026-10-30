@@ -308,78 +308,159 @@
 
 
 /* =====================================================
-   ACTIVITY HEADER
+   ACTIVITY HEADER & REAL-TIME STYLES
 ===================================================== */
+
+.activity-panel .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #232b34;
+}
+
+.activity-panel .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.6px;
+    user-select: none;
+}
+
+.live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: livePulse 1.8s infinite ease-in-out;
+}
+
+@keyframes livePulse {
+    0% {
+        opacity: 0.3;
+        transform: scale(0.85);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0.3;
+        transform: scale(0.85);
+    }
+}
+
+.refresh-activities-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #05c7ee;
+    background: rgba(5, 199, 238, 0.08);
+    border: 1px solid rgba(5, 199, 238, 0.25);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refresh-activities-btn:hover {
+    background: rgba(5, 199, 238, 0.16);
+    border-color: #05c7ee;
+}
+
+.spin-icon {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
 
 .activity-heading,
 .activity-row {
     display: grid;
-
-    grid-template-columns:
-        65px
-        minmax(180px, 1.6fr)
-        110px
-        85px;
-
-    gap: 10px;
-
+    grid-template-columns: 85px 1fr 100px 95px;
+    gap: 12px;
     align-items: center;
 }
 
-
 .activity-heading {
-    padding: 10px 14px;
-
-    border-bottom: 1px solid #292f36;
-
-    color: #76838e;
-
-    font-size: 8px;
-
-    font-weight: 800;
+    padding: 10px 18px;
+    border-bottom: 1px solid #232b34;
+    color: #8b99a6;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
-
 
 .activity-row {
-    min-height: 58px;
-
-    padding: 8px 14px;
-
-    border-bottom: 1px solid #292f36;
+    min-height: 54px;
+    padding: 10px 18px;
+    border-bottom: 1px solid #1c232b;
+    transition: background 0.15s ease;
 }
 
+.activity-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
 
 .activity-row:last-child {
     border-bottom: none;
 }
 
-
 .activity-time {
-    font-size: 8px;
-
-    color: #8995a0;
+    font-size: 11.5px;
+    color: #94a3b8;
+    font-weight: 500;
+    white-space: nowrap;
 }
-
 
 .activity-action {
-    font-size: 11px;
-
-    font-weight: 600;
-
-    line-height: 16px;
-
-    color: #cbd2d9;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: #e2e8f0;
+    word-break: break-word;
 }
-
 
 .activity-user {
-    font-size: 9px;
-
-    line-height: 14px;
-
-    color: #9ca7b0;
+    display: flex;
+    align-items: center;
 }
 
+.user-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.06);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
 
 /* =====================================================
    STATUS
@@ -387,39 +468,40 @@
 
 .status-badge {
     display: inline-flex;
-
     align-items: center;
-
-    padding: 4px 7px;
-
-    border-radius: 10px;
-
-    font-size: 7px;
-
-    font-weight: 800;
-
+    justify-content: center;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 9.5px;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
 }
-
 
 .status-badge.success {
-    background: #0c3329;
-
-    color: #35d49b;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
-
 
 .status-badge.warning {
-    background: #382b0b;
-
-    color: #e8a91b;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.status-badge.danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
 
+.status-badge.info,
 .status-badge.processing {
-    background: #073542;
-
-    color: #05c7ee;
+    background: rgba(5, 199, 238, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(5, 199, 238, 0.3);
 }
 
 

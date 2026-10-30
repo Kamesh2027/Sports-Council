@@ -4,12 +4,22 @@ const activitySchema = new mongoose.Schema(
     {
         type: {
             type: String,
-            required: true
+            default: "info"
+        },
+
+        action: {
+            type: String,
+            default: ""
         },
 
         message: {
             type: String,
-            required: true
+            default: ""
+        },
+
+        user: {
+            type: String,
+            default: "Admin"
         },
 
         userId: {
@@ -26,7 +36,12 @@ const activitySchema = new mongoose.Schema(
                 "student",
                 "system"
             ],
-            default: "system"
+            default: "admin"
+        },
+
+        status: {
+            type: String,
+            default: "COMPLETED"
         }
     },
     {

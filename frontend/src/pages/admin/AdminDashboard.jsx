@@ -30,7 +30,8 @@ import {
     CheckCircle,
     AlertCircle,
     Wrench,
-    ShieldCheck
+    ShieldCheck,
+    RotateCcw
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
@@ -47,48 +48,55 @@ const AdminDashboard = () => {
 
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState("");
     const [showAddCoachModal, setShowAddCoachModal] = useState(false);
     const [notificationMsg, setNotificationMsg] = useState("");
 
 
     // =========================
-    // LOAD DASHBOARD
+    // LOAD DASHBOARD (REAL-TIME)
     // =========================
 
-    const loadDashboard = async () => {
-
+    const loadDashboard = async (isSilent = false) => {
         try {
-
-            setLoading(true);
+            if (!isSilent) {
+                setLoading(true);
+            } else {
+                setIsRefreshing(true);
+            }
 
             setError("");
 
-            const data =
-                await adminService.getDashboard();
-
+            const data = await adminService.getDashboard();
             setDashboard(data);
 
         } catch (err) {
-
-            console.error(err);
-
-            setError(
-                err.response?.data?.message ||
-                "Failed to load dashboard"
-            );
-
+            console.error("Dashboard real-time update error:", err);
+            if (!isSilent) {
+                setError(
+                    err.response?.data?.message ||
+                    "Failed to load dashboard"
+                );
+            }
         } finally {
-
-            setLoading(false);
+            if (!isSilent) {
+                setLoading(false);
+            }
+            setIsRefreshing(false);
         }
     };
 
 
     useEffect(() => {
-
         loadDashboard();
 
+        // Real-time polling every 4 seconds
+        const pollInterval = setInterval(() => {
+            loadDashboard(true);
+        }, 4000);
+
+        return () => clearInterval(pollInterval);
     }, []);
 
 
@@ -360,14 +368,22 @@ const AdminDashboard = () => {
                             <div className="panel-header">
 
                                 <div className="panel-title">
-
                                     <Activity size={18} />
-
-                                    <h3>
-                                        Recent Activities
-                                    </h3>
-
+                                    <h3>Recent Activities</h3>
+                                    <span className="live-indicator">
+                                        <span className="live-dot"></span>
+                                        LIVE
+                                    </span>
                                 </div>
+
+                                <button
+                                    className="refresh-activities-btn"
+                                    onClick={() => loadDashboard(true)}
+                                    title="Click to refresh activities in real time"
+                                >
+                                    <RotateCcw size={13} className={isRefreshing ? "spin-icon" : ""} />
+                                    <span>Sync</span>
+                                </button>
 
                             </div>
 
@@ -375,89 +391,62 @@ const AdminDashboard = () => {
                             <div className="activity-table">
 
                                 <div className="activity-heading">
-
-                                    <span>
-                                        TIME
-                                    </span>
-
-                                    <span>
-                                        ACTION
-                                    </span>
-
-                                    <span>
-                                        USER
-                                    </span>
-
-                                    <span>
-                                        STATUS
-                                    </span>
-
+                                    <span>TIME</span>
+                                    <span>ACTION</span>
+                                    <span>USER</span>
+                                    <span>STATUS</span>
                                 </div>
 
 
-                                {activities.length === 0 ? (
+                                {(!activities || activities.length === 0) ? (
 
                                     <div className="empty-state">
-
                                         No activities yet.
-
                                     </div>
 
                                 ) : (
 
-                                    activities.map(
-                                        (activity) => (
+                                    activities.map((activity) => {
+                                        const actionText = activity.action || activity.message || activity.type || "System Activity";
+                                        const userText = activity.user || (activity.role ? activity.role.toUpperCase() : "ADMIN");
+                                        const statusText = activity.status || "COMPLETED";
 
-                                            <div
-                                                className="activity-row"
-                                                key={
-                                                    activity._id
-                                                }
-                                            >
+                                        let badgeClass = "success";
+                                        const sLower = statusText.toLowerCase();
+                                        const tLower = (activity.type || "").toLowerCase();
+                                        if (sLower.includes("reject") || sLower.includes("delet") || tLower.includes("danger")) {
+                                            badgeClass = "danger";
+                                        } else if (sLower.includes("pending") || tLower.includes("warning")) {
+                                            badgeClass = "warning";
+                                        } else if (sLower.includes("update") || sLower.includes("edit") || tLower.includes("info")) {
+                                            badgeClass = "info";
+                                        }
 
-                                                <span>
-                                                    {new Date(
-                                                        activity.createdAt
-                                                    ).toLocaleTimeString(
-                                                        [],
-                                                        {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit"
-                                                        }
-                                                    )}
+                                        return (
+                                            <div className="activity-row" key={activity._id}>
+                                                <span className="activity-time">
+                                                    {new Date(activity.createdAt).toLocaleTimeString([], {
+                                                        hour: "2-digit",
+                                                        minute: "2-digit"
+                                                    })}
                                                 </span>
 
-
-                                                <span>
-                                                    {
-                                                        activity.action
-                                                    }
+                                                <span className="activity-action" title={actionText}>
+                                                    {actionText}
                                                 </span>
 
-
-                                                <span>
-                                                    {
-                                                        activity.user
-                                                    }
+                                                <span className="activity-user">
+                                                    <span className="user-pill">{userText}</span>
                                                 </span>
 
-
                                                 <span>
-
-                                                    <span
-                                                        className={`status-badge ${activity.type}`}
-                                                    >
-                                                        {
-                                                            activity.status
-                                                        }
+                                                    <span className={`status-badge ${badgeClass}`}>
+                                                        {statusText}
                                                     </span>
-
                                                 </span>
-
                                             </div>
-
-                                        )
-                                    )
+                                        );
+                                    })
 
                                 )}
 

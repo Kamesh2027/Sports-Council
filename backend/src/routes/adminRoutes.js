@@ -30,11 +30,13 @@ const {
     getAllVenues,
     createVenue,
     updateVenue,
-    deleteVenue
+    deleteVenue,
+    getRecentActivities
 } = require("../controllers/adminController");
 
 // Admin routes
 router.get("/dashboard", getDashboard);
+router.get("/activities", getRecentActivities);
 
 // Coach Management
 router.get("/coaches", getAllCoaches);

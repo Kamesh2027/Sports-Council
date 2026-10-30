@@ -68,12 +68,12 @@ const Sidebar = () => {
             name: "Venues",
             path: "/admin/venues",
             icon: MapPin
-        },
-        {
-            name: "Reports",
-            path: "/admin/reports",
-            icon: FileText
         }
+        // {
+        //     name: "Reports",
+        //     path: "/admin/reports",
+        //     icon: FileText
+        // }
     ];
 
     const handleLogout = () => {
