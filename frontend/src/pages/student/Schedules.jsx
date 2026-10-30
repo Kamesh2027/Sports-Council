@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import {
   Calendar,
   Clock,
@@ -17,7 +18,6 @@ export default function StudentSchedules() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const token = localStorage.getItem("token");
-  const hostname = window.location.hostname || "localhost";
 
   useEffect(() => {
     loadSchedules();
@@ -26,7 +26,7 @@ export default function StudentSchedules() {
   const loadSchedules = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://${hostname}:5000/api/student/schedules`, {
+      const response = await axios.get(`${API_BASE}/student/schedules`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE as BASE_URL } from "../../services/api";
 import Modal from "../../components/common/Modal";
 import {
   MapPin,
@@ -70,8 +71,7 @@ const Venues = () => {
   const [formError, setFormError] = useState("");
 
   const token = localStorage.getItem("token");
-  const hostname = window.location.hostname || "localhost";
-  const API_BASE = `http://${hostname}:5000/api/admin`;
+  const API_BASE = `${BASE_URL}/admin`;
 
   useEffect(() => {
     loadVenues();

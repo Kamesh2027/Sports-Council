@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import Modal from "../../components/common/Modal";
 import {
   ClipboardList,
@@ -41,7 +42,7 @@ const CoachRequests = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "http://localhost:5000/api/coach/requests",
+        `${API_BASE}/coach/requests`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -83,7 +84,7 @@ const CoachRequests = () => {
       };
 
       const res = await axios.post(
-        `http://localhost:5000/api/coach/requests/${returningRequest._id || returningRequest.requestId}/return`,
+        `${API_BASE}/coach/requests/${returningRequest._id || returningRequest.requestId}/return`,
         payload,
         {
           headers: {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../../services/api";
 import {
   Search,
   Bell,
@@ -50,8 +51,7 @@ const Navbar = () => {
         try {
           setLoadingProfile(true);
           const token = localStorage.getItem("token");
-          const hostname = window.location.hostname || "localhost";
-          const res = await axios.get(`http://${hostname}:5000/api/student/profile`, {
+          const res = await axios.get(`${API_BASE}/student/profile`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.data.success) {

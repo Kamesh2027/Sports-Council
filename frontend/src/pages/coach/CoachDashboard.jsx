@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import { RotateCcw, Package, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 
 import "./CoachDashboard.css";
@@ -24,7 +25,7 @@ const CoachDashboard = () => {
             const token = localStorage.getItem("token");
 
             const response = await axios.get(
-                "http://localhost:5000/api/coach/dashboard",
+                `${API_BASE}/coach/dashboard`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`

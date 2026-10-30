@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import {
   Trophy,
   Calendar,
@@ -28,8 +29,7 @@ export default function StudentTournaments() {
   const loadTournaments = async () => {
     try {
       setLoading(true);
-      const hostname = window.location.hostname || "localhost";
-      const res = await axios.get(`http://${hostname}:5000/api/student/tournaments`, {
+      const res = await axios.get(`${API_BASE}/student/tournaments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTournaments(res.data.tournaments || []);

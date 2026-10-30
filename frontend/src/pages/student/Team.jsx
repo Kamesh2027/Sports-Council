@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import {
   UsersRound,
   UserCheck,
@@ -19,8 +20,6 @@ const StudentTeam = () => {
   const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
-  const hostname = window.location.hostname || "localhost";
-  const API_BASE = `http://${hostname}:5000/api`;
 
   const fetchTeam = async () => {
     try {

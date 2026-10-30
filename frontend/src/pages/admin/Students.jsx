@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 
 const Students = () => {
     const [students, setStudents] = useState([]);
@@ -16,7 +17,7 @@ const Students = () => {
         try {
             setLoading(true);
             setError("");
-            const res = await axios.get("http://localhost:5000/api/admin/students", {
+            const res = await axios.get(`${API_BASE}/admin/students`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -45,7 +46,7 @@ const Students = () => {
 
         try {
             const res = await axios.put(
-                `http://localhost:5000/api/admin/students/${studentId}/status`,
+                `${API_BASE}/admin/students/${studentId}/status`,
                 { status },
                 {
                     headers: {

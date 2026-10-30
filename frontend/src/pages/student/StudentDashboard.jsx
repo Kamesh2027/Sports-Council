@@ -19,6 +19,7 @@ import {
   Sparkles
 } from "lucide-react";
 import "../../styles/admin.css";
+import { API_BASE } from "../../services/api";
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -29,8 +30,6 @@ const StudentDashboard = () => {
   const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
-  const hostname = window.location.hostname || "localhost";
-  const API_BASE = `http://${hostname}:5000/api`;
 
   const fetchDashboard = async () => {
     try {

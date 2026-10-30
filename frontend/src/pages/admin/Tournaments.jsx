@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import Modal from "../../components/common/Modal";
 import {
   Trophy,
@@ -87,8 +88,7 @@ const AdminTournaments = () => {
       setLoading(true);
       setError("");
 
-      const hostname = window.location.hostname || "localhost";
-      const res = await axios.get(`http://${hostname}:5000/api/admin/tournaments`, {
+      const res = await axios.get(`${API_BASE}/admin/tournaments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -162,13 +162,12 @@ const AdminTournaments = () => {
     }
 
     setFormLoading(true);
-    const hostname = window.location.hostname || "localhost";
 
     try {
       if (editingTournament) {
         // Update Tournament
         const res = await axios.put(
-          `http://${hostname}:5000/api/admin/tournaments/${editingTournament._id || editingTournament.tournamentId}`,
+          `${API_BASE}/admin/tournaments/${editingTournament._id || editingTournament.tournamentId}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -176,7 +175,7 @@ const AdminTournaments = () => {
       } else {
         // Create Tournament
         const res = await axios.post(
-          `http://${hostname}:5000/api/admin/tournaments`,
+          `${API_BASE}/admin/tournaments`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -196,10 +195,9 @@ const AdminTournaments = () => {
 
   // Quick Status Change
   const handleQuickStatusChange = async (tournament, newStatus) => {
-    const hostname = window.location.hostname || "localhost";
     try {
       const res = await axios.put(
-        `http://${hostname}:5000/api/admin/tournaments/${tournament._id || tournament.tournamentId}`,
+        `${API_BASE}/admin/tournaments/${tournament._id || tournament.tournamentId}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -215,11 +213,10 @@ const AdminTournaments = () => {
   // Delete Tournament
   const handleDeleteConfirm = async () => {
     if (!deletingTournament) return;
-    const hostname = window.location.hostname || "localhost";
 
     try {
       const res = await axios.delete(
-        `http://${hostname}:5000/api/admin/tournaments/${deletingTournament._id || deletingTournament.tournamentId}`,
+        `${API_BASE}/admin/tournaments/${deletingTournament._id || deletingTournament.tournamentId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setNotification(res.data.message || "Tournament deleted successfully.");

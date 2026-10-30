@@ -14,6 +14,7 @@ import {
   Award
 } from "lucide-react";
 import "../../styles/admin.css";
+import { API_BASE } from "../../services/api";
 
 const StudentProfile = () => {
   const { user } = useAuth();
@@ -23,8 +24,6 @@ const StudentProfile = () => {
   const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
-  const hostname = window.location.hostname || "localhost";
-  const API_BASE = `http://${hostname}:5000/api`;
 
   const fetchProfile = async () => {
     try {

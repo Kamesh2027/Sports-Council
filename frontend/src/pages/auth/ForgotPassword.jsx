@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import "../../styles/login.css";
 import logo from "../../assets/icons/logo1.png";
 
@@ -25,9 +26,6 @@ const ForgotPassword = () => {
     const [successMsg, setSuccessMsg] = useState("");
     const [resendTimer, setResendTimer] = useState(0);
     const [devOtp, setDevOtp] = useState("");
-
-    const apiHost = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "localhost";
-    const API_BASE = `http://${apiHost}:5000/api`;
 
     // Resend countdown timer
     useEffect(() => {

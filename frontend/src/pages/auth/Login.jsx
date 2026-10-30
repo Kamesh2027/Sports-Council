@@ -243,13 +243,13 @@ const Login = () => {
               <div className="field">
                 <div className="field-label-row">
                   <label htmlFor="password">Password</label>
-                  <button
+                  {/* <button
                     type="button"
                     className="forgot-link"
                     onClick={() => navigate("/forgot-password")}
                   >
                     Forgot Password?
-                  </button>
+                  </button> */}
                 </div>
                 <div className="field-input">
                   <span className="material-symbols-outlined field-icon">

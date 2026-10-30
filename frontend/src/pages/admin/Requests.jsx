@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import Modal from "../../components/common/Modal";
 import {
   ClipboardList,
@@ -62,16 +63,16 @@ const Requests = () => {
       setError("");
 
       const [requestsRes, studentsRes, coachesRes, equipRes] = await Promise.allSettled([
-        axios.get("http://localhost:5000/api/admin/requests", {
+        axios.get(`${API_BASE}/admin/requests`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get("http://localhost:5000/api/admin/students", {
+        axios.get(`${API_BASE}/admin/students`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get("http://localhost:5000/api/admin/coaches", {
+        axios.get(`${API_BASE}/admin/coaches`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get("http://localhost:5000/api/admin/equipment", {
+        axios.get(`${API_BASE}/admin/equipment`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -109,7 +110,7 @@ const Requests = () => {
   const handleUpdateStatus = async (requestId, newStatus) => {
     try {
       const res = await axios.put(
-        `http://localhost:5000/api/admin/requests/${requestId}/status`,
+        `${API_BASE}/admin/requests/${requestId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -130,7 +131,7 @@ const Requests = () => {
   const handleStudentApproval = async (studentId, status) => {
     try {
       const res = await axios.put(
-        `http://localhost:5000/api/admin/students/${studentId}/status`,
+        `${API_BASE}/admin/students/${studentId}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -151,7 +152,7 @@ const Requests = () => {
 
     try {
       await axios.delete(
-        `http://localhost:5000/api/admin/requests/${item._id || item.requestId}`,
+        `${API_BASE}/admin/requests/${item._id || item.requestId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -212,7 +213,7 @@ const Requests = () => {
       };
 
       const res = await axios.post(
-        "http://localhost:5000/api/admin/requests",
+        `${API_BASE}/admin/requests`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import "../../styles/register.css";
 import logo from "../../assets/icons/logo1.png";
 
@@ -81,9 +82,6 @@ const StudentRegister = () => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
-    const apiHost = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "localhost";
-    const API_BASE = `http://${apiHost}:5000/api`;
 
     // Load available coaches
     useEffect(() => {

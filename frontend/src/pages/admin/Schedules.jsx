@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE as BASE_URL } from "../../services/api";
 import Modal from "../../components/common/Modal";
 import {
   Calendar,
@@ -136,8 +137,7 @@ const AdminSchedules = () => {
   const [scoreLoading, setScoreLoading] = useState(false);
 
   const token = localStorage.getItem("token");
-  const hostname = window.location.hostname || "localhost";
-  const API_BASE = `http://${hostname}:5000/api/admin`;
+  const API_BASE = `${BASE_URL}/admin`;
 
   // Fetch initial data
   useEffect(() => {

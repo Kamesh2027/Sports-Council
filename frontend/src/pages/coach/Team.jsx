@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import Modal from "../../components/common/Modal";
 import {
   Users,
@@ -36,7 +37,7 @@ const Team = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "http://localhost:5000/api/coach/team",
+        `${API_BASE}/coach/team`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -82,7 +83,7 @@ const Team = () => {
       };
 
       const res = await axios.post(
-        "http://localhost:5000/api/coach/equipment/return",
+        `${API_BASE}/coach/equipment/return`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );

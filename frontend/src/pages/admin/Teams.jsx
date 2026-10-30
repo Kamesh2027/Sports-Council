@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import { Users, Search, RefreshCw, Trophy, UserCheck, Package } from "lucide-react";
 
 const Teams = () => {
@@ -15,7 +16,7 @@ const Teams = () => {
         try {
             setLoading(true);
             setError("");
-            const res = await axios.get("http://localhost:5000/api/admin/teams", {
+            const res = await axios.get(`${API_BASE}/admin/teams`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

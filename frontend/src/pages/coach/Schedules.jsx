@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import {
   Calendar,
   Clock,
@@ -19,7 +20,6 @@ const CoachSchedules = () => {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const token = localStorage.getItem("token");
-  const hostname = window.location.hostname || "localhost";
 
   useEffect(() => {
     loadSchedules();
@@ -28,7 +28,7 @@ const CoachSchedules = () => {
   const loadSchedules = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://${hostname}:5000/api/coach/schedules`, {
+      const response = await axios.get(`${API_BASE}/coach/schedules`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

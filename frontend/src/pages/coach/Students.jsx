@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -17,10 +18,10 @@ const Students = () => {
       setLoading(true);
 
       const [studentsRes, teamRes] = await Promise.allSettled([
-        axios.get("http://localhost:5000/api/coach/students", {
+        axios.get(`${API_BASE}/coach/students`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get("http://localhost:5000/api/coach/team", {
+        axios.get(`${API_BASE}/coach/team`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);

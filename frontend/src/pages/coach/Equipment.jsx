@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import Modal from "../../components/common/Modal";
 import {
   Package,
@@ -49,7 +50,7 @@ const CoachEquipment = () => {
   const loadEquipmentData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/coach/equipment", {
+      const res = await axios.get(`${API_BASE}/coach/equipment`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -133,7 +134,7 @@ const CoachEquipment = () => {
       };
 
       const res = await axios.post(
-        "http://localhost:5000/api/coach/equipment/return",
+        `${API_BASE}/coach/equipment/return`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );

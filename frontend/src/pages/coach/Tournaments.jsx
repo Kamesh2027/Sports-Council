@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import {
   Trophy,
   Calendar,
@@ -54,12 +55,11 @@ const CoachTournaments = () => {
       setLoading(true);
       setError("");
 
-      const hostname = window.location.hostname || "localhost";
       const [tourRes, coachRes] = await Promise.allSettled([
-        axios.get(`http://${hostname}:5000/api/coach/tournaments`, {
+        axios.get(`${API_BASE}/coach/tournaments`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get(`http://${hostname}:5000/api/coach/dashboard`, {
+        axios.get(`${API_BASE}/coach/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);

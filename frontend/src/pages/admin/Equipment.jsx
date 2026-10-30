@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE } from "../../services/api";
 import Modal from "../../components/common/Modal";
 import {
   Package,
@@ -91,10 +92,10 @@ const Equipment = () => {
       setError("");
 
       const [equipRes, teamsRes] = await Promise.allSettled([
-        axios.get("http://localhost:5000/api/admin/equipment", {
+        axios.get(`${API_BASE}/admin/equipment`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get("http://localhost:5000/api/admin/teams", {
+        axios.get(`${API_BASE}/admin/teams`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -187,7 +188,7 @@ const Equipment = () => {
       if (editingItem) {
         // Update existing item
         const res = await axios.put(
-          `http://localhost:5000/api/admin/equipment/${editingItem._id || editingItem.equipmentId}`,
+          `${API_BASE}/admin/equipment/${editingItem._id || editingItem.equipmentId}`,
           {
             name: formData.name.trim(),
             category: formData.category,
@@ -204,7 +205,7 @@ const Equipment = () => {
       } else {
         // Create new item
         const res = await axios.post(
-          "http://localhost:5000/api/admin/equipment",
+          `${API_BASE}/admin/equipment`,
           {
             name: formData.name.trim(),
             equipmentId: formData.equipmentId.trim(),
@@ -258,7 +259,7 @@ const Equipment = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/admin/equipment/assign-team",
+        `${API_BASE}/admin/equipment/assign-team`,
         {
           teamId: assignTeamId,
           equipmentId: assigningItem._id || assigningItem.equipmentId,
@@ -287,7 +288,7 @@ const Equipment = () => {
 
     try {
       await axios.delete(
-        `http://localhost:5000/api/admin/equipment/${item._id || item.equipmentId}`,
+        `${API_BASE}/admin/equipment/${item._id || item.equipmentId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

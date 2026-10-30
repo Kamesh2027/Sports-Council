@@ -1,7 +1,7 @@
 import axios from "axios";
+import { API_BASE } from "./api";
 
-const API_HOST = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "localhost";
-const API_URL = `http://${API_HOST}:5000/api/coach`;
+const API_URL = `${API_BASE}/coach`;
 
 export const coachService = {
 
