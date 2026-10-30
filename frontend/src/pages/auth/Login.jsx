@@ -226,9 +226,9 @@ const Login = () => {
               <div className="field">
                 <label htmlFor="email">Email Address</label>
                 <div className="field-input">
-                  <span className="material-symbols-outlined field-icon">
+                  {/* <span className="material-symbols-outlined field-icon">
                     mail
-                  </span>
+                  </span> */}
                   <input
                     id="email"
                     type="email"
@@ -252,9 +252,9 @@ const Login = () => {
                   </button> */}
                 </div>
                 <div className="field-input">
-                  <span className="material-symbols-outlined field-icon">
+                  {/* <span className="material-symbols-outlined field-icon">
                     lock
-                  </span>
+                  </span> */}
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
